@@ -60,7 +60,7 @@
         .select('valor, status')
         .eq('cliente_id', cliente.id)
         .eq('status', 'Pendente');
-      const total = parcelas.reduce((sum, p) => sum + p.valor, 0);
+      const total = parcelas.reduce((sum, p) => sum + parseFloat(p.valor), 0);
       div.innerHTML += `<div class='cliente-card'><strong>${cliente.nome}</strong><br>Dívida: R$ ${total.toFixed(2)}</div>`;
     }
   }
