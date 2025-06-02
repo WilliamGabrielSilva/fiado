@@ -252,9 +252,9 @@
 </head>
 <body>
     <!-- Tela de Login -->
-    <div id="loginScreen" class="login-container">
+    <div id="loginScreen" class="login-container" style="display: none;">
         <h2>Login</h2>
-        <div id="loginError" class="error" ></div>
+        <div id="loginError" class="error" style="display: none;"></div>
         <div class="form-group">
             <input type="email" id="loginEmail" placeholder="Email" required>
         </div>
@@ -265,7 +265,7 @@
     </div>
 
     <!-- Tela Principal -->
-    <div id="mainScreen" class="container" >
+    <div id="mainScreen" class="container" style="display: none;">
         <div class="header">
             <h1>Controle de Fiado</h1>
             <div>
@@ -283,7 +283,7 @@
         <div class="modal-content">
             <span class="close" onclick="fecharModalCadastro()">&times;</span>
             <h2>Cadastrar Cliente</h2>
-            <div id="cadastroError" class="error" ></div>
+            <div id="cadastroError" class="error" style="display: none;"></div>
             <div class="form-group">
                 <label for="nomeCliente">Nome *</label>
                 <input type="text" id="nomeCliente" required>
@@ -512,7 +512,7 @@
                         <div class="cliente-info">
                             ${cliente.telefone ? `📞 ${escapeHtml(cliente.telefone)}` : 'Sem telefone'}
                         </div>
-                        <button class="btn" onclick="abrirModalDetalhes(${cliente.id}, '${escapeHtml(cliente.nome).replace(/'/g, "\\'")}')">
+                        <button class="btn" data-cliente-id="${cliente.id}" data-cliente-nome="${escapeHtml(cliente.nome)}" onclick="abrirModalDetalhesSeguro(this)">
                             Ver Detalhes
                         </button>
                     </div>
@@ -580,8 +580,15 @@
             }
         }
 
+        // Função auxiliar para abrir modal de forma segura
+        function abrirModalDetalhesSeguro(button) {
+            const clienteId = parseInt(button.dataset.clienteId);
+            const nomeCliente = button.dataset.clienteNome;
+            abrirModalDetalhes(clienteId, nomeCliente);
+        }
+
         // ===== FUNÇÕES DE VENDAS E PARCELAS =====
-        async function abrirModalDetalhes(nomeCliente) {
+        async function abrirModalDetalhes(clienteId, nomeCliente) {
             clienteAtual = { id: clienteId, nome: nomeCliente };
             
             const modal = document.getElementById('modalDetalhes');
