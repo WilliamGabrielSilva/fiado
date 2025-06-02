@@ -599,7 +599,18 @@
 
         // ===== FUNÇÕES DE VENDAS E PARCELAS =====
         async function abrirModalDetalhes(clienteId, nomeCliente) {
-            clienteAtual = { id: clienteId, nome: nomeCliente };
+            const { data, error } = await supabase
+            .from('clientes')
+            .select('*')
+            .eq('nome', nomeCliente) // ou .eq('telefone', telefoneCliente)
+            .single();
+
+            if (error) {
+            alert('Erro ao buscar cliente: ' + error.message);
+            return;
+            }
+        }
+            clienteAtual = data; // Aqui você garante que clienteAtual.id seja o UUID correto
             
             const modal = document.getElementById('modalDetalhes');
             const titulo = document.getElementById('tituloDetalhes');
