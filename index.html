@@ -1,4 +1,3 @@
-<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
@@ -35,36 +34,62 @@
 </div>
 
 <script>
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-  const supabase = createClient(
-  'https://pgqrjtglzibalkjlkrxt.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBncXJqdGdsemliYWxramxrcnh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzY5NDY2MSwiZXhwIjoyMDYzMjcwNjYxfQ.tlYQRgXgxpQ8YrpaP-1_9vOB547K_ZH23HkEr2g92oI'
-)
+  const supabaseUrl = 'https://SEU-PROJETO.supabase.co';
+  const supabaseKey = 'SUA-CHAVE-ANON-PUBLIC';
+  const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
   async function cadastrarCliente() {
     const nome = document.getElementById('nomeCliente').value;
     const telefone = document.getElementById('telCliente').value;
-    const { data, error } = await supabase.from('clientes').insert([{ nome, telefone }]);
+    const { data, error } = await supabaseClient.from('clientes').insert([{ nome, telefone }]);
     if (error) return alert('Erro ao cadastrar');
     alert('Cliente cadastrado!');
     carregarClientes();
   }
 
   async function carregarClientes() {
-    const { data } = await supabase.from('clientes').select();
+    const { data } = await supabaseClient.from('clientes').select();
     const select = document.getElementById('selectCliente');
     const div = document.getElementById('divClientes');
     select.innerHTML = ''; div.innerHTML = '';
+    
+    if (!data) return;
+    
     data.forEach(c => {
       select.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
     });
+    
     for (let cliente of data) {
-      const { data: parcelas } = await supabase.from('parcelas')
-        .select('valor, status')
+      console.log(`Buscando parcelas para cliente ID: ${cliente.id}, Nome: ${cliente.nome}`);
+      
+      const { data: parcelas, error } = await supabaseClient.from('parcelas')
+        .select('*')
         .eq('cliente_id', cliente.id)
         .eq('status', 'Pendente');
-      const total = parcelas.reduce((sum, p) => sum + p.valor, 0);
-      div.innerHTML += `<div class='cliente-card'><strong>${cliente.nome}</strong><br>Dívida: R$ ${total.toFixed(2)}</div>`;
+      
+      if (error) {
+        console.error(`Erro ao buscar parcelas do cliente ${cliente.nome}:`, error);
+      }
+      
+      console.log(`Parcelas encontradas para ${cliente.nome}:`, parcelas);
+      
+      let total = 0;
+      if (parcelas && parcelas.length > 0) {
+        total = parcelas.reduce((sum, p) => {
+          const valor = parseFloat(p.valor) || 0;
+          console.log(`Somando parcela: R$ ${valor}`);
+          return sum + valor;
+        }, 0);
+      }
+      
+      console.log(`Total da dívida de ${cliente.nome}: R$ ${total}`);
+      
+      div.innerHTML += `<div class='cliente-card'>
+        <strong>${cliente.nome}</strong><br>
+        Telefone: ${cliente.telefone || 'N/A'}<br>
+        Parcelas pendentes: ${parcelas ? parcelas.length : 0}<br>
+        Dívida: R$ ${total.toFixed(2)}
+      </div>`;
     }
   }
 
@@ -75,31 +100,62 @@
     const numParcelas = parseInt(document.getElementById('numParcelas').value);
     const dataInicial = new Date(document.getElementById('dataInicial').value);
 
-    const { data: venda } = await supabase.from('vendas').insert([{
-      cliente_id: clienteId,
-      descricao,
-      valor_total: valorTotal,
-      num_parcelas: numParcelas,
-      data_primeira: dataInicial
-    }]).select();
-
-    const parcelas = [];
-    const valorParcela = parseFloat((valorTotal / numParcelas).toFixed(2));
-    for (let i = 0; i < numParcelas; i++) {
-      const vencimento = new Date(dataInicial);
-      vencimento.setMonth(vencimento.getMonth() + i);
-      parcelas.push({
-        venda_id: venda[0].id,
-        cliente_id: clienteId,
-        numero_parcela: i + 1,
-        valor: valorParcela,
-        vencimento: vencimento.toISOString().slice(0, 10),
-        status: 'Pendente'
-      });
+    if (!clienteId || !descricao || !valorTotal || !numParcelas || !dataInicial) {
+      alert('Preencha todos os campos!');
+      return;
     }
-    await supabase.from('parcelas').insert(parcelas);
-    alert('Venda registrada com sucesso!');
-    carregarClientes();
+
+    try {
+      const { data: venda, error: vendaError } = await supabaseClient.from('vendas').insert([{
+        cliente_id: parseInt(clienteId),
+        descricao,
+        valor_total: valorTotal,
+        num_parcelas: numParcelas,
+        data_primeira: dataInicial.toISOString().slice(0, 10)
+      }]).select();
+
+      if (vendaError) {
+        console.error('Erro ao inserir venda:', vendaError);
+        alert('Erro ao registrar venda');
+        return;
+      }
+
+      const parcelas = [];
+      const valorParcela = parseFloat((valorTotal / numParcelas).toFixed(2));
+      for (let i = 0; i < numParcelas; i++) {
+        const vencimento = new Date(dataInicial);
+        vencimento.setMonth(vencimento.getMonth() + i);
+        parcelas.push({
+          venda_id: venda[0].id,
+          cliente_id: parseInt(clienteId),
+          numero_parcela: i + 1,
+          valor: valorParcela,
+          vencimento: vencimento.toISOString().slice(0, 10),
+          status: 'Pendente'
+        });
+      }
+      
+      const { error: parcelasError } = await supabaseClient.from('parcelas').insert(parcelas);
+      
+      if (parcelasError) {
+        console.error('Erro ao inserir parcelas:', parcelasError);
+        alert('Erro ao registrar parcelas');
+        return;
+      }
+      
+      alert('Venda registrada com sucesso!');
+      
+      // Limpar campos
+      document.getElementById('descricao').value = '';
+      document.getElementById('valorTotal').value = '';
+      document.getElementById('numParcelas').value = '';
+      document.getElementById('dataInicial').value = '';
+      
+      carregarClientes();
+    } catch (error) {
+      console.error('Erro geral:', error);
+      alert('Erro ao processar venda');
+    }
   }
 
   carregarClientes();
