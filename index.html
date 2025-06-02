@@ -64,8 +64,30 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
   const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
   async function cadastrarCliente() {
-    const nome = document.getElementById('nomeCliente').value;
-    const telefone = document.getElementById('telCliente').value;
+  const user = supabase.auth.getUser();
+  const nome = document.getElementById('nomeCliente').value;
+  const telefone = document.getElementById('telCliente').value;
+
+  if (!user || !user.data || !user.data.user) {
+    alert("Você precisa estar logado para cadastrar.");
+    return;
+  }
+
+  const user_id = user.data.user.id;
+
+  const { data, error } = await supabase.from('clientes').insert([
+    { nome, telefone, user_id }
+  ]);
+
+  if (error) {
+    console.error('Erro ao cadastrar:', error);
+    return alert('Erro ao cadastrar cliente: ' + error.message);
+  }
+
+  alert('Cliente cadastrado!');
+  carregarClientes();
+}
+
     
     if (!nome.trim()) {
       alert('Digite o nome do cliente');
