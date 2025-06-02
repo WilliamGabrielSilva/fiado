@@ -1,38 +1,4 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de Fiado</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-</head>
-<body>
-<div class="container">
-  <h1>Controle de Fiado</h1>
-
-  <h2>Cadastrar Cliente</h2>
-  <input type="text" id="nomeCliente" placeholder="Nome do cliente">
-  <input type="text" id="telCliente" placeholder="Telefone">
-  <button onclick="cadastrarCliente()">Cadastrar</button>
-
-  <h2>Lançar Venda Fiado</h2>
-  <select id="selectCliente"></select>
-  <input type="text" id="descricao" placeholder="Descrição da compra">
-  <input type="number" id="valorTotal" placeholder="Valor total">
-  <input type="number" id="numParcelas" placeholder="Número de parcelas">
-  <input type="date" id="dataInicial">
-  <button onclick="registrarVenda()">Registrar Venda</button>
-
-  <h2>Débito por Cliente</h2>
-  <div id="divClientes"></div>
-</div>
-<!--<script type="module" src="app.js"></script>-->
-<script>
-    //import { supabase } from './supabaseClient.js'
-    const supabaseUrl = 'https://pgqrjtglzibalkjlkrxt.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBncXJqdGdsemliYWxramxrcnh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzY5NDY2MSwiZXhwIjoyMDYzMjcwNjYxfQ.tlYQRgXgxpQ8YrpaP-1_9vOB547K_ZH23HkEr2g92oI';
-    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+import { supabase } from './supabaseClient.js'
 
 async function cadastrarCliente() {
     const nome = document.getElementById('nomeCliente').value;
@@ -96,6 +62,3 @@ async function registrarVenda() {
 }
 
   carregarClientes();
-</script>
-</body>
-</html>
