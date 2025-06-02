@@ -723,45 +723,45 @@
         }
 
         async function carregarParcelas(clienteId) {
-    const container = document.getElementById('parcelasList');
+        const container = document.getElementById('parcelasList');
     
-    try {
-        // Primeira consulta: buscar as parcelas
-        const { data: parcelas, error: parcelasError } = await supabase
-            .from('parcelas')
-            .select('*')
-            .eq('cliente_id', clienteId)
-            .order('vencimento');
+        try {
+            // Primeira consulta: buscar as parcelas
+            const { data: parcelas, error: parcelasError } = await supabase
+                .from('parcelas')
+                .select('*')
+                eq('cliente_id', clienteId)
+                .order('vencimento');
 
-        if (parcelasError) {
-            throw parcelasError;
-        }
+            if (parcelasError) {
+                throw parcelasError;
+            }
 
-        if (!parcelas || parcelas.length === 0) {
-            container.innerHTML = '<p>Nenhuma parcela encontrada.</p>';
-            return;
-        }
+            if (!parcelas || parcelas.length === 0) {
+                container.innerHTML = '<p>Nenhuma parcela encontrada.</p>';
+                return;
+            }
 
-        // Segunda consulta: buscar as vendas relacionadas
-        const vendasIds = [...new Set(parcelas.map(p => p.venda_id))];
-        const { data: vendas, error: vendasError } = await supabase
-            .from('vendas')
-            .select('id, descricao')
-            .in('id', vendasIds);
+            // Segunda consulta: buscar as vendas relacionadas
+            const vendasIds = [...new Set(parcelas.map(p => p.venda_id))];
+            const { data: vendas, error: vendasError } = await supabase
+                .from('vendas')
+                .select('id, descricao')
+                .in('id', vendasIds);
 
-        if (vendasError) {
-            throw vendasError;
-        }
+            if (vendasError) {
+                throw vendasError;
+            }
 
-        // Criar um mapa para facilitar o acesso às vendas
-        const vendasMap = {};
-        vendas.forEach(venda => {
-            vendasMap[venda.id] = venda;
-        });
+            // Criar um mapa para facilitar o acesso às vendas
+            const vendasMap = {};
+            vendas.forEach(venda => {
+                vendasMap[venda.id] = venda;
+            });
 
-        const hoje = new Date().toISOString().split('T')[0];
+            const hoje = new Date().toISOString().split('T')[0];
 
-        container.innerHTML = parcelas.map(parcela => {
+            container.innerHTML = parcelas.map(parcela => {
             const venda = vendasMap[parcela.venda_id] || { descricao: 'Venda não encontrada' };
             const vencida = parcela.vencimento < hoje && parcela.status === 'Pendente';
             const statusClass = parcela.status === 'Paga' ? 'paga' : (vencida ? 'vencida' : '');
@@ -790,10 +790,10 @@
             `;
         }).join('');
 
-    } catch (error) {
-        console.error('Erro ao carregar parcelas:', error);
-        container.innerHTML = '<p class="error">Erro ao carregar parcelas</p>';
-    }
+        } catch (error) {
+            console.error('Erro ao carregar parcelas:', error);
+            container.innerHTML = '<p class="error">Erro ao carregar parcelas</p>';
+        }
 }
 
         async function marcarComoPaga(parcelaId) {
