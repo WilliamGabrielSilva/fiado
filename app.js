@@ -1,7 +1,5 @@
-import { supabase } from './supabaseClient.js'
-
-const supabaseUrl = 'https://SEU-PROJETO.supabase.co';
-const supabaseKey = 'SUA-CHAVE-ANON-PUBLIC';
+const supabaseUrl = 'https://pgqrjtglzibalkjlkrxt.supabase.co';
+const supabaseKey =   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBncXJqdGdsemliYWxramxrcnh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzY5NDY2MSwiZXhwIjoyMDYzMjcwNjYxfQ.tlYQRgXgxpQ8YrpaP-1_9vOB547K_ZH23HkEr2g92oI';
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 async function cadastrarCliente() {
