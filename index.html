@@ -10,6 +10,11 @@
     input, select, button { margin: 5px 0; padding: 6px; width: 100%; }
     .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
     .cliente-card { background: #efefef; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    .venda-card { background: #fff; border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; }
+    .parcela-item { background: #f8f9fa; padding: 8px; margin: 5px 0; border-radius: 3px; display: flex; justify-content: space-between; align-items: center; }
+    .parcela-vencida { background: #f8d7da; border-left: 3px solid #dc3545; }
+    .parcela-proxima { background: #fff3cd; border-left: 3px solid #ffc107; }
+    button:hover { opacity: 0.8; }
   </style>
 </head>
 <body>
@@ -31,12 +36,31 @@
 
   <h2>Débito por Cliente</h2>
   <div id="divClientes"></div>
+
+  <!-- Modal para detalhes do cliente -->
+  <div id="modalDetalhes" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: relative; margin: 50px auto; width: 90%; max-width: 800px; background: white; padding: 20px; border-radius: 8px; max-height: 80vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 id="tituloModal">Detalhes da Dívida</h2>
+        <button onclick="fecharModal()" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">✕</button>
+      </div>
+      
+      <div id="resumoCliente" style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;"></div>
+      
+      <h3>Parcelas Pendentes</h3>
+      <div id="listaVendas"></div>
+      
+      <div style="margin-top: 20px; text-align: right;">
+        <button onclick="fecharModal()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 3px; cursor: pointer;">Fechar</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
   // SUBSTITUA PELOS SEUS DADOS REAIS DO SUPABASE
-  const supabaseUrl = 'https://pgqrjtglzibalkjlkrxt.supabase.co'; // Cole aqui sua Project URL
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBncXJqdGdsemliYWxramxrcnh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzY5NDY2MSwiZXhwIjoyMDYzMjcwNjYxfQ.tlYQRgXgxpQ8YrpaP-1_9vOB547K_ZH23HkEr2g92oI'; // Cole aqui sua anon public key
+ const supabaseUrl = 'https://pgqrjtglzibalkjlkrxt.supabase.co'; // Cole aqui sua Project URL
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBncXJqdGdsemliYWxramxrcnh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzY5NDY2MSwiZXhwIjoyMDYzMjcwNjYxfQ.tlYQRgXgxpQ8YrpaP-1_9vOB547K_ZH23HkEr2g92oI'; // Cole aqui sua anon public key
   const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
   async function cadastrarCliente() {
@@ -100,7 +124,8 @@
         <strong>${cliente.nome}</strong><br>
         Telefone: ${cliente.telefone || 'N/A'}<br>
         Parcelas pendentes: ${parcelas ? parcelas.length : 0}<br>
-        Dívida: R$ ${total.toFixed(2)}
+        Dívida: R$ ${total.toFixed(2)}<br>
+        <button onclick="verDetalhes('${cliente.id}', '${cliente.nome}')" style="margin-top: 10px; padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">Ver Detalhes</button>
       </div>`;
     }
   }
@@ -167,6 +192,116 @@
     } catch (error) {
       console.error('Erro geral:', error);
       alert('Erro ao processar venda');
+    }
+  }
+
+  async function verDetalhes(clienteId, nomeCliente) {
+    document.getElementById('modalDetalhes').style.display = 'block';
+    document.getElementById('tituloModal').textContent = `Detalhes da Dívida - ${nomeCliente}`;
+    
+    // Buscar todas as vendas do cliente
+    const { data: vendas } = await supabaseClient
+      .from('vendas')
+      .select('*')
+      .eq('cliente_id', clienteId);
+    
+    // Buscar todas as parcelas pendentes
+    const { data: parcelas } = await supabaseClient
+      .from('parcelas')
+      .select('*')
+      .eq('cliente_id', clienteId)
+      .eq('status', 'Pendente')
+      .order('vencimento');
+    
+    // Calcular totais
+    const totalDivida = parcelas ? parcelas.reduce((sum, p) => sum + parseFloat(p.valor), 0) : 0;
+    const totalParcelas = parcelas ? parcelas.length : 0;
+    
+    // Mostrar resumo
+    document.getElementById('resumoCliente').innerHTML = `
+      <h4>${nomeCliente}</h4>
+      <p><strong>Total devido:</strong> R$ ${totalDivida.toFixed(2)}</p>
+      <p><strong>Número de parcelas pendentes:</strong> ${totalParcelas}</p>
+    `;
+    
+    // Agrupar parcelas por venda
+    const vendasComParcelas = {};
+    if (parcelas) {
+      parcelas.forEach(parcela => {
+        if (!vendasComParcelas[parcela.venda_id]) {
+          const venda = vendas.find(v => v.id === parcela.venda_id);
+          vendasComParcelas[parcela.venda_id] = {
+            venda: venda,
+            parcelas: []
+          };
+        }
+        vendasComParcelas[parcela.venda_id].parcelas.push(parcela);
+      });
+    }
+    
+    // Mostrar vendas e parcelas
+    let htmlVendas = '';
+    for (let vendaId in vendasComParcelas) {
+      const item = vendasComParcelas[vendaId];
+      const venda = item.venda;
+      const parcelasVenda = item.parcelas;
+      
+      htmlVendas += `
+        <div class="venda-card">
+          <h4>Venda: ${venda.descricao}</h4>
+          <p><strong>Data:</strong> ${new Date(venda.data_primeira).toLocaleDateString('pt-BR')}</p>
+          <p><strong>Valor total:</strong> R$ ${parseFloat(venda.valor_total).toFixed(2)} (${venda.num_parcelas}x)</p>
+          <p><strong>Parcelas pendentes:</strong> ${parcelasVenda.length}</p>
+          
+          <div style="margin-top: 10px;">
+            <strong>Parcelas:</strong>
+      `;
+      
+      parcelasVenda.forEach(parcela => {
+        const vencimento = new Date(parcela.vencimento);
+        const hoje = new Date();
+        const diasAtraso = Math.floor((hoje - vencimento) / (1000 * 60 * 60 * 24));
+        
+        let cssClass = 'parcela-item';
+        let statusTexto = '';
+        
+        if (diasAtraso > 0) {
+          cssClass += ' parcela-vencida';
+          statusTexto = ` (${diasAtraso} dias em atraso)`;
+        } else if (diasAtraso >= -7) {
+          cssClass += ' parcela-proxima';
+          statusTexto = ` (vence em ${Math.abs(diasAtraso)} dias)`;
+        }
+        
+        htmlVendas += `
+          <div class="${cssClass}">
+            <span>Parcela ${parcela.parcela || parcela.numero_parcela} - Vencimento: ${vencimento.toLocaleDateString('pt-BR')}${statusTexto}</span>
+            <strong>R$ ${parseFloat(parcela.valor).toFixed(2)}</strong>
+          </div>
+        `;
+      });
+      
+      htmlVendas += `
+          </div>
+        </div>
+      `;
+    }
+    
+    if (!htmlVendas) {
+      htmlVendas = '<p>Nenhuma parcela pendente encontrada.</p>';
+    }
+    
+    document.getElementById('listaVendas').innerHTML = htmlVendas;
+  }
+
+  function fecharModal() {
+    document.getElementById('modalDetalhes').style.display = 'none';
+  }
+
+  // Fechar modal clicando fora
+  document.getElementById('modalDetalhes').onclick = function(e) {
+    if (e.target === this) {
+      fecharModal();
     }
   }
 
