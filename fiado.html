@@ -1,16 +1,11 @@
-<html lang="pt-BR">
+<!DOCTYPE html>
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Controle de Fiado</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-  <style>
-    body { font-family: sans-serif; margin: 20px; background: #f9f9f9; }
-    h2 { margin-top: 40px; }
-    input, select, button { margin: 5px 0; padding: 6px; width: 100%; }
-    .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-    .cliente-card { background: #efefef; padding: 10px; margin: 10px 0; border-radius: 5px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Fiado</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
 <div class="container">
@@ -32,22 +27,23 @@
   <h2>Débito por Cliente</h2>
   <div id="divClientes"></div>
 </div>
-
+<!--<script type="module" src="app.js"></script>-->
 <script>
-  const supabaseUrl = 'https://SEU-PROJETO.supabase.co';
-  const supabaseKey = 'SUA-CHAVE-ANON-PUBLIC';
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+    //import { supabase } from './supabaseClient.js'
+    const supabaseUrl = 'https://pgqrjtglzibalkjlkrxt.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBncXJqdGdsemliYWxramxrcnh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzY5NDY2MSwiZXhwIjoyMDYzMjcwNjYxfQ.tlYQRgXgxpQ8YrpaP-1_9vOB547K_ZH23HkEr2g92oI';
+    const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-  async function cadastrarCliente() {
+async function cadastrarCliente() {
     const nome = document.getElementById('nomeCliente').value;
     const telefone = document.getElementById('telCliente').value;
     const { data, error } = await supabase.from('clientes').insert([{ nome, telefone }]);
     if (error) return alert('Erro ao cadastrar');
     alert('Cliente cadastrado!');
     carregarClientes();
-  }
+}
 
-  async function carregarClientes() {
+async function carregarClientes() {
     const { data } = await supabase.from('clientes').select();
     const select = document.getElementById('selectCliente');
     const div = document.getElementById('divClientes');
@@ -63,9 +59,9 @@
       const total = parcelas.reduce((sum, p) => sum + p.valor, 0);
       div.innerHTML += `<div class='cliente-card'><strong>${cliente.nome}</strong><br>Dívida: R$ ${total.toFixed(2)}</div>`;
     }
-  }
+}
 
-  async function registrarVenda() {
+async function registrarVenda() {
     const clienteId = document.getElementById('selectCliente').value;
     const descricao = document.getElementById('descricao').value;
     const valorTotal = parseFloat(document.getElementById('valorTotal').value);
@@ -88,7 +84,7 @@
       parcelas.push({
         venda_id: venda[0].id,
         cliente_id: clienteId,
-        numero_parcela: i + 1,
+        numero_parcelas: i + 1,
         valor: valorParcela,
         vencimento: vencimento.toISOString().slice(0, 10),
         status: 'Pendente'
@@ -97,7 +93,7 @@
     await supabase.from('parcelas').insert(parcelas);
     alert('Venda registrada com sucesso!');
     carregarClientes();
-  }
+}
 
   carregarClientes();
 </script>
