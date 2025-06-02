@@ -723,108 +723,78 @@
         }
 
         async function carregarParcelas(clienteId) {
-            const container = document.getElementById('parcelasList');
-            const loading = document.getElementById('loadingParcelas');
-            
-            console.log('Carregando parcelas para cliente ID:', clienteId);
-            
-            if (loading) loading.style.display = 'block';
-            
-            try {
-                // Verificar se as tabelas existem e se há dados
-                console.log('Verificando tabelas...');
-                
-                // Primeira query: buscar parcelas com join simples
-                const { data: parcelas, error } = await supabase
-                    .from('parcelas')
-                    .select(`
-                        id,
-                        parcela, 
-                        valor,
-                        vencimento,
-                        status,
-                        venda_id,
-                        vendas!inner(descricao)
-                    `)
-                    .eq('cliente_id', clienteId)
-                    .order('vencimento');
+    const container = document.getElementById('parcelasList');
+    
+    try {
+        // Primeira consulta: buscar as parcelas
+        const { data: parcelas, error: parcelasError } = await supabase
+            .from('parcelas')
+            .select('*')
+            .eq('cliente_id', clienteId)
+            .order('vencimento');
 
-                console.log('Query resultado:', { parcelas, error });
-
-                if (error) {
-                    console.error('Erro na query:', error);
-                    throw error;
-                }
-
-                if (loading) loading.style.display = 'none';
-
-                if (!parcelas || parcelas.length === 0) {
-                    console.log('Nenhuma parcela encontrada');
-                    container.innerHTML = '<p>Nenhuma parcela encontrada.</p>';
-                    
-                    // Debug: verificar se existem vendas para este cliente
-                    const { data: vendas, error: vendasError } = await supabase
-                        .from('vendas')
-                        .select('*')
-                        .eq('cliente_id', clienteId);
-                    
-                    console.log('Vendas encontradas:', vendas);
-                    
-                    if (vendas && vendas.length > 0) {
-                        container.innerHTML += '<div class="debug-info">Debug: Encontradas ' + vendas.length + ' vendas, mas nenhuma parcela.</div>';
-                    }
-                    
-                    return;
-                }
-
-                console.log('Parcelas encontradas:', parcelas.length);
-
-                const hoje = new Date().toISOString().split('T')[0];
-
-                container.innerHTML = parcelas.map(parcela => {
-                    console.log('Processando parcela:', parcela);
-                    
-                    const vencida = parcela.vencimento < hoje && parcela.status === 'Pendente';
-                    const statusClass = parcela.status === 'Paga' ? 'paga' : (vencida ? 'vencida' : '');
-                    const statusBadge = parcela.status === 'Paga' ? 'status-paga' : (vencida ? 'status-vencida' : 'status-pendente');
-                    const statusText = parcela.status === 'Paga' ? 'Paga' : (vencida ? 'Vencida' : 'Pendente');
-
-                    return `
-                        <div class="parcela-item ${statusClass}">
-                            <div>
-                                <strong>Parcela ${parcela.parcela}</strong><br>
-                                ${escapeHtml(parcela.vendas?.descricao || 'Sem descrição')}<br>
-                                <small>Vencimento: ${formatarData(parcela.vencimento)}</small>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 1.2em; font-weight: bold;">
-                                    R$ ${parseFloat(parcela.valor).toFixed(2)}
-                                </div>
-                                <div class="status-badge ${statusBadge}">
-                                    ${statusText}
-                                </div>
-                                ${parcela.status === 'Pendente' ? 
-                                    `<button class="btn" style="margin-top: 10px; padding: 8px 16px; font-size: 14px;" onclick="marcarComoPaga(${parcela.id})">Marcar como Paga</button>` : 
-                                    ''}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-
-                console.log('Parcelas renderizadas com sucesso');
-
-            } catch (error) {
-                console.error('Erro ao carregar parcelas:', error);
-                if (loading) loading.style.display = 'none';
-                
-                container.innerHTML = `
-                    <p class="error">Erro ao carregar parcelas: ${error.message}</p>
-                    <div class="debug-info">
-                        Detalhes do erro: ${JSON.stringify(error, null, 2)}
-                    </div>
-                `;
-            }
+        if (parcelasError) {
+            throw parcelasError;
         }
+
+        if (!parcelas || parcelas.length === 0) {
+            container.innerHTML = '<p>Nenhuma parcela encontrada.</p>';
+            return;
+        }
+
+        // Segunda consulta: buscar as vendas relacionadas
+        const vendasIds = [...new Set(parcelas.map(p => p.venda_id))];
+        const { data: vendas, error: vendasError } = await supabase
+            .from('vendas')
+            .select('id, descricao')
+            .in('id', vendasIds);
+
+        if (vendasError) {
+            throw vendasError;
+        }
+
+        // Criar um mapa para facilitar o acesso às vendas
+        const vendasMap = {};
+        vendas.forEach(venda => {
+            vendasMap[venda.id] = venda;
+        });
+
+        const hoje = new Date().toISOString().split('T')[0];
+
+        container.innerHTML = parcelas.map(parcela => {
+            const venda = vendasMap[parcela.venda_id] || { descricao: 'Venda não encontrada' };
+            const vencida = parcela.vencimento < hoje && parcela.status === 'Pendente';
+            const statusClass = parcela.status === 'Paga' ? 'paga' : (vencida ? 'vencida' : '');
+            const statusBadge = parcela.status === 'Paga' ? 'status-paga' : (vencida ? 'status-vencida' : 'status-pendente');
+            const statusText = parcela.status === 'Paga' ? 'Paga' : (vencida ? 'Vencida' : 'Pendente');
+
+            return `
+                <div class="parcela-item ${statusClass}">
+                    <div>
+                        <strong>Parcela ${parcela.parcela}</strong><br>
+                        ${escapeHtml(venda.descricao)}<br>
+                        <small>Vencimento: ${formatarData(parcela.vencimento)}</small>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 1.2em; font-weight: bold;">
+                            R$ ${parcela.valor.toFixed(2)}
+                        </div>
+                        <div class="status-badge ${statusBadge}">
+                            ${statusText}
+                        </div>
+                        ${parcela.status === 'Pendente' ? 
+                            `<button class="btn" style="margin-top: 10px; padding: 8px 16px; font-size: 14px;" onclick="marcarComoPaga(${parcela.id})">Marcar como Paga</button>` : 
+                            ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error('Erro ao carregar parcelas:', error);
+        container.innerHTML = '<p class="error">Erro ao carregar parcelas</p>';
+    }
+}
 
         async function marcarComoPaga(parcelaId) {
             try {
