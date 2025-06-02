@@ -34,21 +34,21 @@
 </div>
 
 <script>
-  const supabaseUrl = 'https://SEU-PROJETO.supabase.co';
-  const supabaseKey = 'SUA-CHAVE-ANON-PUBLIC';
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+  const supabaseUrl = 'https://pgqrjtglzibalkjlkrxt.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBncXJqdGdsemliYWxramxrcnh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzY5NDY2MSwiZXhwIjoyMDYzMjcwNjYxfQ.tlYQRgXgxpQ8YrpaP-1_9vOB547K_ZH23HkEr2g92oI';
+  const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
   async function cadastrarCliente() {
     const nome = document.getElementById('nomeCliente').value;
     const telefone = document.getElementById('telCliente').value;
-    const { data, error } = await supabase.from('clientes').insert([{ nome, telefone }]);
+    const { data, error } = await supabaseClient.from('clientes').insert([{ nome, telefone }]);
     if (error) return alert('Erro ao cadastrar');
     alert('Cliente cadastrado!');
     carregarClientes();
   }
 
   async function carregarClientes() {
-    const { data } = await supabase.from('clientes').select();
+    const { data } = await supabaseClient.from('clientes').select();
     const select = document.getElementById('selectCliente');
     const div = document.getElementById('divClientes');
     select.innerHTML = ''; div.innerHTML = '';
@@ -56,7 +56,7 @@
       select.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
     });
     for (let cliente of data) {
-      const { data: parcelas } = await supabase.from('parcelas')
+      const { data: parcelas } = await supabaseClient.from('parcelas')
         .select('valor, status')
         .eq('cliente_id', cliente.id)
         .eq('status', 'Pendente');
@@ -72,7 +72,7 @@
     const numParcelas = parseInt(document.getElementById('numParcelas').value);
     const dataInicial = new Date(document.getElementById('dataInicial').value);
 
-    const { data: venda } = await supabase.from('vendas').insert([{
+    const { data: venda } = await supabaseClient.from('vendas').insert([{
       cliente_id: clienteId,
       descricao,
       valor_total: valorTotal,
@@ -94,7 +94,7 @@
         status: 'Pendente'
       });
     }
-    await supabase.from('parcelas').insert(parcelas);
+    await supabaseClient.from('parcelas').insert(parcelas);
     alert('Venda registrada com sucesso!');
     carregarClientes();
   }
