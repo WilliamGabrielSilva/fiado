@@ -743,8 +743,7 @@
                         valor,
                         vencimento,
                         status,
-                        venda_id,
-                        vendas!inner(descricao)
+                        venda_id
                     `)
                     .eq('cliente_id', clienteId)
                     .order('vencimento');
