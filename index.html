@@ -103,7 +103,7 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
     document.getElementById('nomeCliente').value = '';
     document.getElementById('telCliente').value = '';
     carregarClientes();
-  }
+  
 
   async function carregarClientes() {
     const { data } = await supabaseClient.from('clientes').select();
