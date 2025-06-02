@@ -634,93 +634,97 @@
         }
 
         async function registrarVenda() {
-            if (!clienteAtual) return;
+    if (!clienteAtual) return;
 
-            const descricaoField = document.getElementById('descricaoVenda');
-            const valorField = document.getElementById('valorTotal');
-            const parcelasField = document.getElementById('numParcelas');
-            const dataField = document.getElementById('dataInicial');
+    const descricaoField = document.getElementById('descricaoVenda');
+    const valorField = document.getElementById('valorTotal');
+    const parcelasField = document.getElementById('numParcelas');
+    const dataField = document.getElementById('dataInicial');
 
-            const descricao = descricaoField?.value?.trim();
-            const valorTotal = parseFloat(valorField?.value || 0);
-            const numParcelas = parseInt(parcelasField?.value || 1);
-            const dataInicial = dataField?.value;
+    const descricao = descricaoField?.value?.trim();
+    const valorTotal = parseFloat(valorField?.value || 0);
+    const numParcelas = parseInt(parcelasField?.value || 1);
+    const dataInicial = dataField?.value;
 
-            if (!descricao || !valorTotal || valorTotal <= 0 || !dataInicial) {
-                alert('Preencha todos os campos obrigatórios');
-                return;
-            }
+    if (!descricao || !valorTotal || valorTotal <= 0 || !dataInicial) {
+        alert('Preencha todos os campos obrigatórios');
+        return;
+    }
 
-            try {
-                if (!supabase) {
-                    await waitForSupabase();
-                }
-
-                // Inserir venda
-                const { data: venda, error: vendaError } = await supabase
-                    .from('vendas')
-                    .insert([{
-                        cliente_id: clienteAtual.id,
-                        descricao: descricao,
-                        valor_total: valorTotal,
-                        num_parcelas: numParcelas,
-                        data_primeira: dataInicial
-                    }])
-                    .select()
-                    .single();
-
-                if (vendaError) {
-                    throw vendaError;
-                }
-
-                // Criar parcelas
-                const parcelas = [];
-                let somaAjuste = 0;
-
-                for (let i = 0; i < numParcelas; i++) {
-                    const vencimento = new Date(dataInicial);
-                    vencimento.setMonth(vencimento.getMonth() + i);
-                    
-                    let valorParcela = parseFloat((valorTotal / numParcelas).toFixed(2));
-                    
-                    // Ajustar a última parcela para garantir que a soma seja exata
-                    if (i === numParcelas - 1) {
-                        valorParcela = valorTotal - somaAjuste;
-                    } else {
-                        somaAjuste += valorParcela;
-                    }
-
-                    parcelas.push({
-                        venda_id: venda.id,
-                        cliente_id: clienteAtual.id,
-                        parcela: i + 1,
-                        valor: valorParcela,
-                        vencimento: vencimento.toISOString().split('T')[0],
-                        status: 'Pendente'
-                    });
-                }
-
-                const { error: parcelasError } = await supabase
-                    .from('parcelas')
-                    .insert(parcelas);
-
-                if (parcelasError) {
-                    throw parcelasError;
-                }
-
-                alert('Venda registrada com sucesso!');
-                
-                // Limpar campos
-                if (descricaoField) descricaoField.value = '';
-                if (valorField) valorField.value = '';
-                if (parcelasField) parcelasField.value = '1';
-                
-                await carregarParcelas(clienteAtual.id);
-            } catch (error) {
-                console.error('Erro ao registrar venda:', error);
-                alert('Erro ao registrar venda: ' + error.message);
-            }
+    try {
+        if (!supabase) {
+            await waitForSupabase();
         }
+
+        // Inserir venda
+        const { data: venda, error: vendaError } = await supabase
+            .from('vendas')
+            .insert([{
+                cliente_id: clienteAtual.id,
+                descricao: descricao,
+                valor_total: valorTotal,
+                num_parcelas: numParcelas,
+                data_primeira: dataInicial
+            }])
+            .select()
+            .single();
+
+        if (vendaError) {
+            throw vendaError;
+        }
+
+        console.log('Venda criada:', venda); // Para debug
+
+        // Criar parcelas
+        const parcelas = [];
+        let somaAjuste = 0;
+
+        for (let i = 0; i < numParcelas; i++) {
+            const vencimento = new Date(dataInicial);
+            vencimento.setMonth(vencimento.getMonth() + i);
+            
+            let valorParcela = parseFloat((valorTotal / numParcelas).toFixed(2));
+            
+            // Ajustar a última parcela para garantir que a soma seja exata
+            if (i === numParcelas - 1) {
+                valorParcela = valorTotal - somaAjuste;
+            } else {
+                somaAjuste += valorParcela;
+            }
+
+            parcelas.push({
+                venda_id: venda.id, // Usar o UUID retornado pela inserção da venda
+                cliente_id: clienteAtual.id,
+                parcela: i + 1,
+                valor: valorParcela,
+                vencimento: vencimento.toISOString().split('T')[0],
+                status: 'Pendente'
+            });
+        }
+
+        console.log('Parcelas a serem criadas:', parcelas); // Para debug
+
+        const { error: parcelasError } = await supabase
+            .from('parcelas')
+            .insert(parcelas);
+
+        if (parcelasError) {
+            throw parcelasError;
+        }
+
+        alert('Venda registrada com sucesso!');
+        
+        // Limpar campos
+        if (descricaoField) descricaoField.value = '';
+        if (valorField) valorField.value = '';
+        if (parcelasField) parcelasField.value = '1';
+        
+        await carregarParcelas(clienteAtual.id);
+    } catch (error) {
+        console.error('Erro ao registrar venda:', error);
+        alert('Erro ao registrar venda: ' + error.message);
+    }
+}
 
         async function carregarParcelas(clienteId) {
             const container = document.getElementById('parcelasList');
