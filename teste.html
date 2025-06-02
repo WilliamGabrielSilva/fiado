@@ -4,12 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle de Fiado</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.38.0/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="login-container" style="display: none;">
+        <h2>Login</h2>
+        <div id="loginError" class="error" style="display: none;"></div>
+        <div class="form-group">
+            <input type="email" id="loginEmail" placeholder="Email" required>
+        </div>
+        <div class="form-group">
+            <input type="password" id="loginPassword" placeholder="Senha" required>
+        </div>
+        <button class="btn" onclick="realizarLogin()">Entrar</button>
+    </div>
+
     <!-- Tela Principal -->
-    <div id="mainScreen" class="container">
+    <div id="mainScreen" class="container" style="display: none;">
         <div class="header">
             <h1>Controle de Fiado</h1>
             <div>
@@ -86,14 +99,75 @@
     </div>
 
     <script>
-        import {supabase} from './supabaseClient.js'
+        // Configuração do Supabase
+        const supabaseUrl = 'https://pgqrjtglzibalkjlkrxt.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBncXJqdGdsemliYWxramxrcnh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzY5NDY2MSwiZXhwIjoyMDYzMjcwNjYxfQ.tlYQRgXgxpQ8YrpaP-1_9vOB547K_ZH23HkEr2g92oI'; // Substitua pela sua chave real
         
-
+        // Variáveis globais
+        let supabase;
         let clienteAtual = null;
+        
+        // Aguardar carregamento da biblioteca
+        function initSupabase() {
+            if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+                supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+                return true;
+            }
+            return false;
+        }
 
-        // Funções de Autenticação
+        // Tentar inicializar o Supabase com retry
+        function waitForSupabase() {
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const maxAttempts = 10;
+                
+                const tryInit = () => {
+                    if (initSupabase()) {
+                        resolve();
+                    } else if (attempts < maxAttempts) {
+                        attempts++;
+                        setTimeout(tryInit, 100);
+                    } else {
+                        reject(new Error('Falha ao carregar biblioteca Supabase'));
+                    }
+                };
+                
+                tryInit();
+            });
+        }
+
+        // ===== FUNÇÕES PRINCIPAIS =====
+
+        // ===== FUNÇÕES DE INTERFACE =====
+        function mostrarLogin() {
+            document.getElementById('loginScreen').style.display = 'block';
+            document.getElementById('mainScreen').style.display = 'none';
+        }
+
+        function mostrarTelaPrincipal() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainScreen').style.display = 'block';
+        }
+
+        function mostrarErro(elementId, mensagem) {
+            const errorDiv = document.getElementById(elementId);
+            if (errorDiv) {
+                errorDiv.textContent = mensagem;
+                errorDiv.style.display = 'block';
+                setTimeout(() => {
+                    errorDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // ===== FUNÇÕES DE AUTENTICAÇÃO =====
         async function verificarUsuario() {
             try {
+                if (!supabase) {
+                    await waitForSupabase();
+                }
+                
                 const { data: { user }, error } = await supabase.auth.getUser();
                 
                 if (error) {
@@ -116,38 +190,57 @@
             }
         }
 
+        async function realizarLogin() {
+            const email = document.getElementById('loginEmail')?.value?.trim();
+            const password = document.getElementById('loginPassword')?.value;
 
+            if (!email || !password) {
+                mostrarErro('loginError', 'Email e senha são obrigatórios');
+                return;
+            }
 
-        async function realizarLogout() {
             try {
-                await supabase.auth.signOut();
-                mostrarLogin();
+                if (!supabase) {
+                    await waitForSupabase();
+                }
+
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    mostrarErro('loginError', 'Erro ao fazer login: ' + error.message);
+                    return;
+                }
+
+                // Limpar campos
+                document.getElementById('loginEmail').value = '';
+                document.getElementById('loginPassword').value = '';
+                const errorDiv = document.getElementById('loginError');
+                if (errorDiv) errorDiv.style.display = 'none';
+                
+                mostrarTelaPrincipal();
+                await carregarClientes();
             } catch (error) {
-                console.error('Erro no logout:', error);
+                console.error('Erro no login:', error);
+                mostrarErro('loginError', 'Erro inesperado ao fazer login');
             }
         }
 
-        // Funções de Interface
-        function mostrarLogin() {
-            document.getElementById('loginScreen').style.display = 'block';
-            document.getElementById('mainScreen').style.display = 'none';
+        async function realizarLogout() {
+            try {
+                if (supabase) {
+                    await supabase.auth.signOut();
+                }
+                mostrarLogin();
+            } catch (error) {
+                console.error('Erro no logout:', error);
+                mostrarLogin(); // Mesmo com erro, volta para login
+            }
         }
 
-        function mostrarTelaPrincipal() {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('mainScreen').style.display = 'block';
-        }
-
-        function mostrarErro(elementId, mensagem) {
-            const errorDiv = document.getElementById(elementId);
-            errorDiv.textContent = mensagem;
-            errorDiv.style.display = 'block';
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-            }, 5000);
-        }
-
-        // Funções de Cliente
+        // ===== FUNÇÕES DE CLIENTE =====
         async function carregarClientes() {
             const loading = document.getElementById('loading');
             const container = document.getElementById('clientesContainer');
@@ -192,20 +285,30 @@
         }
 
         function abrirModalCadastro() {
-            document.getElementById('modalCadastro').style.display = 'block';
-            document.getElementById('nomeCliente').focus();
+            const modal = document.getElementById('modalCadastro');
+            const nomeField = document.getElementById('nomeCliente');
+            if (modal) modal.style.display = 'block';
+            if (nomeField) nomeField.focus();
         }
 
         function fecharModalCadastro() {
-            document.getElementById('modalCadastro').style.display = 'none';
-            document.getElementById('nomeCliente').value = '';
-            document.getElementById('telefoneCliente').value = '';
-            document.getElementById('cadastroError').style.display = 'none';
+            const modal = document.getElementById('modalCadastro');
+            const nomeField = document.getElementById('nomeCliente');
+            const telefoneField = document.getElementById('telefoneCliente');
+            const errorDiv = document.getElementById('cadastroError');
+            
+            if (modal) modal.style.display = 'none';
+            if (nomeField) nomeField.value = '';
+            if (telefoneField) telefoneField.value = '';
+            if (errorDiv) errorDiv.style.display = 'none';
         }
 
         async function salvarCliente() {
-            const nome = document.getElementById('nomeCliente').value.trim();
-            const telefone = document.getElementById('telefoneCliente').value.trim();
+            const nomeField = document.getElementById('nomeCliente');
+            const telefoneField = document.getElementById('telefoneCliente');
+            
+            const nome = nomeField?.value?.trim();
+            const telefone = telefoneField?.value?.trim();
 
             if (!nome) {
                 mostrarErro('cadastroError', 'Nome é obrigatório');
@@ -213,6 +316,10 @@
             }
 
             try {
+                if (!supabase) {
+                    await waitForSupabase();
+                }
+
                 const { error } = await supabase
                     .from('clientes')
                     .insert([{ 
@@ -232,35 +339,53 @@
             }
         }
 
-        // Funções de Vendas e Parcelas
+        // ===== FUNÇÕES DE VENDAS E PARCELAS =====
         async function abrirModalDetalhes(clienteId, nomeCliente) {
             clienteAtual = { id: clienteId, nome: nomeCliente };
-            document.getElementById('tituloDetalhes').textContent = `Cliente: ${nomeCliente}`;
-            document.getElementById('modalDetalhes').style.display = 'block';
+            
+            const modal = document.getElementById('modalDetalhes');
+            const titulo = document.getElementById('tituloDetalhes');
+            const dataField = document.getElementById('dataInicial');
+            
+            if (titulo) titulo.textContent = `Cliente: ${nomeCliente}`;
+            if (modal) modal.style.display = 'block';
             
             // Definir data inicial como hoje
-            const hoje = new Date().toISOString().split('T')[0];
-            document.getElementById('dataInicial').value = hoje;
+            if (dataField) {
+                const hoje = new Date().toISOString().split('T')[0];
+                dataField.value = hoje;
+            }
             
             await carregarParcelas(clienteId);
         }
 
         function fecharModalDetalhes() {
-            document.getElementById('modalDetalhes').style.display = 'none';
+            const modal = document.getElementById('modalDetalhes');
+            const descricaoField = document.getElementById('descricaoVenda');
+            const valorField = document.getElementById('valorTotal');
+            const parcelasField = document.getElementById('numParcelas');
+            
+            if (modal) modal.style.display = 'none';
             clienteAtual = null;
+            
             // Limpar campos
-            document.getElementById('descricaoVenda').value = '';
-            document.getElementById('valorTotal').value = '';
-            document.getElementById('numParcelas').value = '1';
+            if (descricaoField) descricaoField.value = '';
+            if (valorField) valorField.value = '';
+            if (parcelasField) parcelasField.value = '1';
         }
 
         async function registrarVenda() {
             if (!clienteAtual) return;
 
-            const descricao = document.getElementById('descricaoVenda').value.trim();
-            const valorTotal = parseFloat(document.getElementById('valorTotal').value);
-            const numParcelas = parseInt(document.getElementById('numParcelas').value);
-            const dataInicial = document.getElementById('dataInicial').value;
+            const descricaoField = document.getElementById('descricaoVenda');
+            const valorField = document.getElementById('valorTotal');
+            const parcelasField = document.getElementById('numParcelas');
+            const dataField = document.getElementById('dataInicial');
+
+            const descricao = descricaoField?.value?.trim();
+            const valorTotal = parseFloat(valorField?.value || 0);
+            const numParcelas = parseInt(parcelasField?.value || 1);
+            const dataInicial = dataField?.value;
 
             if (!descricao || !valorTotal || valorTotal <= 0 || !dataInicial) {
                 alert('Preencha todos os campos obrigatórios');
@@ -268,6 +393,10 @@
             }
 
             try {
+                if (!supabase) {
+                    await waitForSupabase();
+                }
+
                 // Inserir venda
                 const { data: venda, error: vendaError } = await supabase
                     .from('vendas')
@@ -287,7 +416,6 @@
 
                 // Criar parcelas
                 const parcelas = [];
-                const valorParcela = parseFloat((valorTotal / numParcelas).toFixed(2));
                 let somaAjuste = 0;
 
                 for (let i = 0; i < numParcelas; i++) {
@@ -324,9 +452,9 @@
                 alert('Venda registrada com sucesso!');
                 
                 // Limpar campos
-                document.getElementById('descricaoVenda').value = '';
-                document.getElementById('valorTotal').value = '';
-                document.getElementById('numParcelas').value = '1';
+                if (descricaoField) descricaoField.value = '';
+                if (valorField) valorField.value = '';
+                if (parcelasField) parcelasField.value = '1';
                 
                 await carregarParcelas(clienteAtual.id);
             } catch (error) {
@@ -395,6 +523,10 @@
 
         async function marcarComoPaga(parcelaId) {
             try {
+                if (!supabase) {
+                    await waitForSupabase();
+                }
+
                 const { error } = await supabase
                     .from('parcelas')
                     .update({ status: 'Paga' })
@@ -404,14 +536,16 @@
                     throw error;
                 }
 
-                await carregarParcelas(clienteAtual.id);
+                if (clienteAtual) {
+                    await carregarParcelas(clienteAtual.id);
+                }
             } catch (error) {
                 console.error('Erro ao marcar parcela como paga:', error);
                 alert('Erro ao marcar parcela como paga: ' + error.message);
             }
         }
 
-        // Funções Utilitárias
+        // ===== FUNÇÕES UTILITÁRIAS =====
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');
@@ -423,7 +557,7 @@
             return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
         }
 
-        // Eventos
+        // ===== EVENTOS E INICIALIZAÇÃO =====
         document.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 if (document.getElementById('loginScreen').style.display !== 'none') {
@@ -447,9 +581,17 @@
 
         // Inicialização
         window.addEventListener('load', async function() {
-            const user = await verificarUsuario();
-            if (user) {
-                await carregarClientes();
+            try {
+                await waitForSupabase();
+                console.log('Supabase carregado com sucesso');
+                
+                const user = await verificarUsuario();
+                if (user) {
+                    await carregarClientes();
+                }
+            } catch (error) {
+                console.error('Erro ao inicializar:', error);
+                alert('Erro ao carregar a aplicação. Verifique sua conexão com a internet.');
             }
         });
     </script>
