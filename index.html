@@ -34,16 +34,28 @@
 </div>
 
 <script>
-  const supabaseUrl ='https://pgqrjtglzibalkjlkrxt.supabase.co';
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBncXJqdGdsemliYWxramxrcnh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzY5NDY2MSwiZXhwIjoyMDYzMjcwNjYxfQ.tlYQRgXgxpQ8YrpaP-1_9vOB547K_ZH23HkEr2g92oI';
+  // SUBSTITUA PELOS SEUS DADOS REAIS DO SUPABASE
+  const supabaseUrl = 'https://pgqrjtglzibalkjlkrxt.supabase.co'; // Cole aqui sua Project URL
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBncXJqdGdsemliYWxramxrcnh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzY5NDY2MSwiZXhwIjoyMDYzMjcwNjYxfQ.tlYQRgXgxpQ8YrpaP-1_9vOB547K_ZH23HkEr2g92oI'; // Cole aqui sua anon public key
   const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
   async function cadastrarCliente() {
     const nome = document.getElementById('nomeCliente').value;
     const telefone = document.getElementById('telCliente').value;
-    const { data, error } = await supabaseClient.from('clientes').insert([{ nome, telefone }]);
-    if (error) return alert('Erro ao cadastrar');
+    
+    if (!nome.trim()) {
+      alert('Digite o nome do cliente');
+      return;
+    }
+    
+    const { data, error } = await supabaseClient.from('clientes').insert([{ nome, telefone }]).select();
+    if (error) {
+      console.error('Erro ao cadastrar:', error);
+      return alert('Erro ao cadastrar cliente');
+    }
     alert('Cliente cadastrado!');
+    document.getElementById('nomeCliente').value = '';
+    document.getElementById('telCliente').value = '';
     carregarClientes();
   }
 
@@ -107,7 +119,7 @@
 
     try {
       const { data: venda, error: vendaError } = await supabaseClient.from('vendas').insert([{
-        cliente_id: parseInt(clienteId),
+        cliente_id: clienteId, // Mantém como string se for UUID
         descricao,
         valor_total: valorTotal,
         num_parcelas: numParcelas,
@@ -127,7 +139,7 @@
         vencimento.setMonth(vencimento.getMonth() + i);
         parcelas.push({
           venda_id: venda[0].id,
-          cliente_id: parseInt(clienteId),
+          cliente_id: clienteId, // Mantém como string se for UUID
           numero_parcela: i + 1,
           valor: valorParcela,
           vencimento: vencimento.toISOString().slice(0, 10),
