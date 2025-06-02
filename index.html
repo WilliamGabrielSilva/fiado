@@ -1,57 +1,503 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Controle de Fiado</title>
-  <link rel="stylesheet" href="css/estilo.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Fiado</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/supabase-js/2.38.0/supabase.min.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body onload="checkUserOrRedirect().then(carregarClientes)">
-  <h1>Bem-vindo ao Controle de Fiado</h1>
-  <!-- Conteúdo da aplicação -->
-   <div class="container">
-  <h1>Controle de Fiado</h1>
-
-  <h2>Cadastrar Cliente</h2>
-  <input type="text" id="nome" placeholder="Nome do cliente">
-  <input type="text" id="telefone" placeholder="Telefone">
-  <button onclick="cadastrarCliente()">Cadastrar</button>
-
-  <h2>Lançar Venda Fiado</h2>
-  <select id="selectCliente"></select>
-  <input type="text" id="descricao" placeholder="Descrição da compra">
-  <input type="number" id="valorTotal" placeholder="Valor total">
-  <input type="number" id="numParcelas" placeholder="Número de parcelas">
-  <input type="date" id="dataInicial">
-  <button onclick="registrarVenda()">Registrar Venda</button>
-
-  <h2>Débito por Cliente</h2>
-  <div id="divClientes"></div>
-
-  <!-- Modal para detalhes do cliente -->
-  <div id="modalDetalhes" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-    <div style="position: relative; margin: 50px auto; width: 90%; max-width: 800px; background: white; padding: 20px; border-radius: 8px; max-height: 80vh; overflow-y: auto;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2 id="tituloModal">Detalhes da Dívida</h2>
-        <button onclick="fecharModal()" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">✕</button>
-      </div>
-      
-      <div id="resumoCliente" style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;"></div>
-      
-      <h3>Parcelas Pendentes</h3>
-      <div id="listaVendas"></div>
-      
-      <div style="margin-top: 20px; text-align: right;">
-        <button onclick="fecharModal()" style="background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 3px; cursor: pointer;">Fechar</button>
-      </div>
+<body>
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="login-container" style="display: none;">
+        <h2>Login</h2>
+        <div id="loginError" class="error" style="display: none;"></div>
+        <div class="form-group">
+            <input type="email" id="loginEmail" placeholder="Email" required>
+        </div>
+        <div class="form-group">
+            <input type="password" id="loginPassword" placeholder="Senha" required>
+        </div>
+        <button class="btn" onclick="realizarLogin()">Entrar</button>
     </div>
-  </div>
-</div>
-<button onclick="logout()">Sair</button>
-<script src="js/supabase.js"></script>
-<script src="js/auth.js"></script>
-<script src="js/clientes.js"></script>
-<script src="js/vendas.js"></script>
-<script src="js/ui.js"></script>
+
+    <!-- Tela Principal -->
+    <div id="mainScreen" class="container" style="display: none;">
+        <div class="header">
+            <h1>Controle de Fiado</h1>
+            <div>
+                <button class="btn" onclick="abrirModalCadastro()">Novo Cliente</button>
+                <button class="btn btn-danger" onclick="realizarLogout()">Sair</button>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">Carregando...</div>
+        <div id="clientesContainer" class="clientes-grid"></div>
+    </div>
+
+    <!-- Modal Cadastro Cliente -->
+    <div id="modalCadastro" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModalCadastro()">&times;</span>
+            <h2>Cadastrar Cliente</h2>
+            <div id="cadastroError" class="error" style="display: none;"></div>
+            <div class="form-group">
+                <label for="nomeCliente">Nome *</label>
+                <input type="text" id="nomeCliente" required>
+            </div>
+            <div class="form-group">
+                <label for="telefoneCliente">Telefone</label>
+                <input type="tel" id="telefoneCliente" placeholder="(11) 99999-9999">
+            </div>
+            <button class="btn" onclick="salvarCliente()">Salvar</button>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes Cliente -->
+    <div id="modalDetalhes" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="fecharModalDetalhes()">&times;</span>
+            <h2 id="tituloDetalhes">Detalhes do Cliente</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="descricaoVenda">Descrição da Venda</label>
+                    <input type="text" id="descricaoVenda" placeholder="Ex: Produtos diversos">
+                </div>
+                <div class="form-group">
+                    <label for="valorTotal">Valor Total (R$)</label>
+                    <input type="number" id="valorTotal" step="0.01" min="0">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="numParcelas">Número de Parcelas</label>
+                    <select id="numParcelas">
+                        <option value="1">1x</option>
+                        <option value="2">2x</option>
+                        <option value="3">3x</option>
+                        <option value="4">4x</option>
+                        <option value="5">5x</option>
+                        <option value="6">6x</option>
+                        <option value="12">12x</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="dataInicial">Data Primeira Parcela</label>
+                    <input type="date" id="dataInicial">
+                </div>
+            </div>
+            
+            <button class="btn" onclick="registrarVenda()">Registrar Venda</button>
+            
+            <div id="parcelasContainer" class="parcelas-list">
+                <h3>Parcelas</h3>
+                <div id="parcelasList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuração do Supabase
+        const supabaseUrl = 'https://pgqrjtglzibalkjlkrxt.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBncXJqdGdsemliYWxramxrcnh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzY5NDY2MSwiZXhwIjoyMDYzMjcwNjYxfQ.tlYQRgXgxpQ8YrpaP-1_9vOB547K_ZH23HkEr2g92oI'; // Substitua pela sua chave real
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        let clienteAtual = null;
+
+        // Funções de Autenticação
+        async function verificarUsuario() {
+            try {
+                const { data: { user }, error } = await supabase.auth.getUser();
+                
+                if (error) {
+                    console.error('Erro ao verificar usuário:', error);
+                    mostrarLogin();
+                    return null;
+                }
+
+                if (!user) {
+                    mostrarLogin();
+                    return null;
+                }
+
+                mostrarTelaPrincipal();
+                return user;
+            } catch (error) {
+                console.error('Erro na verificação:', error);
+                mostrarLogin();
+                return null;
+            }
+        }
+
+        async function realizarLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+
+            if (!email || !password) {
+                mostrarErro('loginError', 'Email e senha são obrigatórios');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    mostrarErro('loginError', 'Erro ao fazer login: ' + error.message);
+                    return;
+                }
+
+                document.getElementById('loginEmail').value = '';
+                document.getElementById('loginPassword').value = '';
+                errorDiv.style.display = 'none';
+                
+                mostrarTelaPrincipal();
+                await carregarClientes();
+            } catch (error) {
+                console.error('Erro no login:', error);
+                mostrarErro('loginError', 'Erro inesperado ao fazer login');
+            }
+        }
+
+        async function realizarLogout() {
+            try {
+                await supabase.auth.signOut();
+                mostrarLogin();
+            } catch (error) {
+                console.error('Erro no logout:', error);
+            }
+        }
+
+        // Funções de Interface
+        function mostrarLogin() {
+            document.getElementById('loginScreen').style.display = 'block';
+            document.getElementById('mainScreen').style.display = 'none';
+        }
+
+        function mostrarTelaPrincipal() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainScreen').style.display = 'block';
+        }
+
+        function mostrarErro(elementId, mensagem) {
+            const errorDiv = document.getElementById(elementId);
+            errorDiv.textContent = mensagem;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Funções de Cliente
+        async function carregarClientes() {
+            const loading = document.getElementById('loading');
+            const container = document.getElementById('clientesContainer');
+            
+            loading.style.display = 'block';
+            container.innerHTML = '';
+
+            try {
+                const { data: clientes, error } = await supabase
+                    .from('clientes')
+                    .select('*')
+                    .order('nome');
+
+                if (error) {
+                    throw error;
+                }
+
+                loading.style.display = 'none';
+
+                if (!clientes || clientes.length === 0) {
+                    container.innerHTML = '<p>Nenhum cliente cadastrado ainda.</p>';
+                    return;
+                }
+
+                container.innerHTML = clientes.map(cliente => `
+                    <div class="cliente-card">
+                        <div class="cliente-nome">${escapeHtml(cliente.nome)}</div>
+                        <div class="cliente-info">
+                            ${cliente.telefone ? `📞 ${escapeHtml(cliente.telefone)}` : 'Sem telefone'}
+                        </div>
+                        <button class="btn" onclick="abrirModalDetalhes(${cliente.id}, '${escapeHtml(cliente.nome)}')">
+                            Ver Detalhes
+                        </button>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Erro ao carregar clientes:', error);
+                loading.style.display = 'none';
+                container.innerHTML = '<p class="error">Erro ao carregar clientes</p>';
+            }
+        }
+
+        function abrirModalCadastro() {
+            document.getElementById('modalCadastro').style.display = 'block';
+            document.getElementById('nomeCliente').focus();
+        }
+
+        function fecharModalCadastro() {
+            document.getElementById('modalCadastro').style.display = 'none';
+            document.getElementById('nomeCliente').value = '';
+            document.getElementById('telefoneCliente').value = '';
+            document.getElementById('cadastroError').style.display = 'none';
+        }
+
+        async function salvarCliente() {
+            const nome = document.getElementById('nomeCliente').value.trim();
+            const telefone = document.getElementById('telefoneCliente').value.trim();
+
+            if (!nome) {
+                mostrarErro('cadastroError', 'Nome é obrigatório');
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('clientes')
+                    .insert([{ 
+                        nome: nome, 
+                        telefone: telefone || null 
+                    }]);
+
+                if (error) {
+                    throw error;
+                }
+
+                fecharModalCadastro();
+                await carregarClientes();
+            } catch (error) {
+                console.error('Erro ao cadastrar cliente:', error);
+                mostrarErro('cadastroError', 'Erro ao cadastrar cliente: ' + error.message);
+            }
+        }
+
+        // Funções de Vendas e Parcelas
+        async function abrirModalDetalhes(clienteId, nomeCliente) {
+            clienteAtual = { id: clienteId, nome: nomeCliente };
+            document.getElementById('tituloDetalhes').textContent = `Cliente: ${nomeCliente}`;
+            document.getElementById('modalDetalhes').style.display = 'block';
+            
+            // Definir data inicial como hoje
+            const hoje = new Date().toISOString().split('T')[0];
+            document.getElementById('dataInicial').value = hoje;
+            
+            await carregarParcelas(clienteId);
+        }
+
+        function fecharModalDetalhes() {
+            document.getElementById('modalDetalhes').style.display = 'none';
+            clienteAtual = null;
+            // Limpar campos
+            document.getElementById('descricaoVenda').value = '';
+            document.getElementById('valorTotal').value = '';
+            document.getElementById('numParcelas').value = '1';
+        }
+
+        async function registrarVenda() {
+            if (!clienteAtual) return;
+
+            const descricao = document.getElementById('descricaoVenda').value.trim();
+            const valorTotal = parseFloat(document.getElementById('valorTotal').value);
+            const numParcelas = parseInt(document.getElementById('numParcelas').value);
+            const dataInicial = document.getElementById('dataInicial').value;
+
+            if (!descricao || !valorTotal || valorTotal <= 0 || !dataInicial) {
+                alert('Preencha todos os campos obrigatórios');
+                return;
+            }
+
+            try {
+                // Inserir venda
+                const { data: venda, error: vendaError } = await supabase
+                    .from('vendas')
+                    .insert([{
+                        cliente_id: clienteAtual.id,
+                        descricao: descricao,
+                        valor_total: valorTotal,
+                        num_parcelas: numParcelas,
+                        data_primeira: dataInicial
+                    }])
+                    .select()
+                    .single();
+
+                if (vendaError) {
+                    throw vendaError;
+                }
+
+                // Criar parcelas
+                const parcelas = [];
+                const valorParcela = parseFloat((valorTotal / numParcelas).toFixed(2));
+                let somaAjuste = 0;
+
+                for (let i = 0; i < numParcelas; i++) {
+                    const vencimento = new Date(dataInicial);
+                    vencimento.setMonth(vencimento.getMonth() + i);
+                    
+                    let valorParcela = parseFloat((valorTotal / numParcelas).toFixed(2));
+                    
+                    // Ajustar a última parcela para garantir que a soma seja exata
+                    if (i === numParcelas - 1) {
+                        valorParcela = valorTotal - somaAjuste;
+                    } else {
+                        somaAjuste += valorParcela;
+                    }
+
+                    parcelas.push({
+                        venda_id: venda.id,
+                        cliente_id: clienteAtual.id,
+                        parcela: i + 1,
+                        valor: valorParcela,
+                        vencimento: vencimento.toISOString().split('T')[0],
+                        status: 'Pendente'
+                    });
+                }
+
+                const { error: parcelasError } = await supabase
+                    .from('parcelas')
+                    .insert(parcelas);
+
+                if (parcelasError) {
+                    throw parcelasError;
+                }
+
+                alert('Venda registrada com sucesso!');
+                
+                // Limpar campos
+                document.getElementById('descricaoVenda').value = '';
+                document.getElementById('valorTotal').value = '';
+                document.getElementById('numParcelas').value = '1';
+                
+                await carregarParcelas(clienteAtual.id);
+            } catch (error) {
+                console.error('Erro ao registrar venda:', error);
+                alert('Erro ao registrar venda: ' + error.message);
+            }
+        }
+
+        async function carregarParcelas(clienteId) {
+            const container = document.getElementById('parcelasList');
+            
+            try {
+                const { data: parcelas, error } = await supabase
+                    .from('parcelas')
+                    .select(`
+                        *,
+                        vendas!inner(descricao)
+                    `)
+                    .eq('cliente_id', clienteId)
+                    .order('vencimento');
+
+                if (error) {
+                    throw error;
+                }
+
+                if (!parcelas || parcelas.length === 0) {
+                    container.innerHTML = '<p>Nenhuma parcela encontrada.</p>';
+                    return;
+                }
+
+                const hoje = new Date().toISOString().split('T')[0];
+
+                container.innerHTML = parcelas.map(parcela => {
+                    const vencida = parcela.vencimento < hoje && parcela.status === 'Pendente';
+                    const statusClass = parcela.status === 'Paga' ? 'paga' : (vencida ? 'vencida' : '');
+                    const statusBadge = parcela.status === 'Paga' ? 'status-paga' : (vencida ? 'status-vencida' : 'status-pendente');
+                    const statusText = parcela.status === 'Paga' ? 'Paga' : (vencida ? 'Vencida' : 'Pendente');
+
+                    return `
+                        <div class="parcela-item ${statusClass}">
+                            <div>
+                                <strong>Parcela ${parcela.parcela}</strong><br>
+                                ${escapeHtml(parcela.vendas.descricao)}<br>
+                                <small>Vencimento: ${formatarData(parcela.vencimento)}</small>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.2em; font-weight: bold;">
+                                    R$ ${parcela.valor.toFixed(2)}
+                                </div>
+                                <div class="status-badge ${statusBadge}">
+                                    ${statusText}
+                                </div>
+                                ${parcela.status === 'Pendente' ? 
+                                    `<button class="btn" style="margin-top: 10px; padding: 8px 16px; font-size: 14px;" onclick="marcarComoPaga(${parcela.id})">Marcar como Paga</button>` : 
+                                    ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Erro ao carregar parcelas:', error);
+                container.innerHTML = '<p class="error">Erro ao carregar parcelas</p>';
+            }
+        }
+
+        async function marcarComoPaga(parcelaId) {
+            try {
+                const { error } = await supabase
+                    .from('parcelas')
+                    .update({ status: 'Paga' })
+                    .eq('id', parcelaId);
+
+                if (error) {
+                    throw error;
+                }
+
+                await carregarParcelas(clienteAtual.id);
+            } catch (error) {
+                console.error('Erro ao marcar parcela como paga:', error);
+                alert('Erro ao marcar parcela como paga: ' + error.message);
+            }
+        }
+
+        // Funções Utilitárias
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatarData(data) {
+            return new Date(data + 'T00:00:00').toLocaleDateString('pt-BR');
+        }
+
+        // Eventos
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                if (document.getElementById('loginScreen').style.display !== 'none') {
+                    realizarLogin();
+                }
+            }
+        });
+
+        // Fechar modais clicando fora
+        window.onclick = function(event) {
+            const modalCadastro = document.getElementById('modalCadastro');
+            const modalDetalhes = document.getElementById('modalDetalhes');
+            
+            if (event.target === modalCadastro) {
+                fecharModalCadastro();
+            }
+            if (event.target === modalDetalhes) {
+                fecharModalDetalhes();
+            }
+        }
+
+        // Inicialização
+        window.addEventListener('load', async function() {
+            const user = await verificarUsuario();
+            if (user) {
+                await carregarClientes();
+            }
+        });
+    </script>
 </body>
 </html>
