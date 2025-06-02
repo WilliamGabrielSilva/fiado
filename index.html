@@ -35,8 +35,8 @@
 
 <script>
   // SUBSTITUA PELOS SEUS DADOS REAIS DO SUPABASE
-  const supabaseUrl = 'https://pgqrjtglzibalkjlkrxt.supabase.co'; // Cole aqui sua Project URL
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBncXJqdGdsemliYWxramxrcnh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzY5NDY2MSwiZXhwIjoyMDYzMjcwNjYxfQ.tlYQRgXgxpQ8YrpaP-1_9vOB547K_ZH23HkEr2g92oI'; // Cole aqui sua anon public key
+  const supabaseUrl = 'https://SEU-PROJETO.supabase.co'; // Cole aqui sua Project URL
+  const supabaseKey = 'SUA-CHAVE-ANON-PUBLIC'; // Cole aqui sua anon public key
   const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
   async function cadastrarCliente() {
@@ -139,8 +139,8 @@
         vencimento.setMonth(vencimento.getMonth() + i);
         parcelas.push({
           venda_id: venda[0].id,
-          cliente_id: clienteId, // Mantém como string se for UUID
-          numero_parcela: i + 1,
+          cliente_id: clienteId,
+          parcela: i + 1, // Mudei de numero_parcela para parcela
           valor: valorParcela,
           vencimento: vencimento.toISOString().slice(0, 10),
           status: 'Pendente'
