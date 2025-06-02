@@ -55,15 +55,28 @@
     data.forEach(c => {
       select.innerHTML += `<option value="${c.id}">${c.nome}</option>`;
     });
-    for (let cliente of data) {
-      const { data: parcelas } = await supabaseClient.from('parcelas')
-        .select('valor, status')
+  for (let cliente of data) {
+      console.log(`Buscando parcelas para cliente ID: ${cliente.id}, Nome: ${cliente.nome}`);
+      
+      const { data: parcelas, error } = await supabaseClient.from('parcelas')
+        .select('*')
         .eq('cliente_id', cliente.id)
         .eq('status', 'Pendente');
-      const total = parcelas.reduce((sum, p) => sum + parseFloat(p.valor), 0);
-      div.innerHTML += `<div class='cliente-card'><strong>${cliente.nome}</strong><br>Dívida: R$ ${total.toFixed(2)}</div>`;
-    }
-  }
+      
+      if (error) {
+        console.error(`Erro ao buscar parcelas do cliente ${cliente.nome}:`, error);
+      }
+      
+      console.log(`Parcelas encontradas para ${cliente.nome}:`, parcelas);
+      
+      let total = 0;
+      if (parcelas && parcelas.length > 0) {
+        total = parcelas.reduce((sum, p) => {
+          const valor = parseFloat(p.valor) || 0;
+          console.log(`Somando parcela: R$ ${valor}`);
+          return sum + valor;
+        }, 0);
+      }
 
   async function registrarVenda() {
     const clienteId = document.getElementById('selectCliente').value;
