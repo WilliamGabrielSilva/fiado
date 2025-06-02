@@ -65,6 +65,7 @@
     continue; // Pula para o próximo cliente se houver erro
     }
     console.log(parcelas); // Verifique os dados retornados
+    const total = parcelas.reduce((sum, p) => sum + parseFloat(p.valor), 0); // Converte valor para número
     console.log(`Total para ${cliente.nome}: R$ ${total.toFixed(2)}`); // Verifique o total calculado
     div.innerHTML += `<div class='cliente-card'><strong>${cliente.nome}</strong><br>Dívida: R$ ${total.toFixed(2)}</div>`;
 }
