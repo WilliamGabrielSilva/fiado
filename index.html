@@ -252,9 +252,9 @@
 </head>
 <body>
     <!-- Tela de Login -->
-    <div id="loginScreen" class="login-container" style="display: none;">
+    <div id="loginScreen" class="login-container">
         <h2>Login</h2>
-        <div id="loginError" class="error" style="display: none;"></div>
+        <div id="loginError" class="error"></div>
         <div class="form-group">
             <input type="email" id="loginEmail" placeholder="Email" required>
         </div>
@@ -265,7 +265,7 @@
     </div>
 
     <!-- Tela Principal -->
-    <div id="mainScreen" class="container" style="display: none;">
+    <div id="mainScreen" class="container">
         <div class="header">
             <h1>Controle de Fiado</h1>
             <div>
@@ -283,7 +283,7 @@
         <div class="modal-content">
             <span class="close" onclick="fecharModalCadastro()">&times;</span>
             <h2>Cadastrar Cliente</h2>
-            <div id="cadastroError" class="error" style="display: none;"></div>
+            <div id="cadastroError" class="error"></div>
             <div class="form-group">
                 <label for="nomeCliente">Nome *</label>
                 <input type="text" id="nomeCliente" required>
@@ -582,14 +582,14 @@
 
         // Função auxiliar para abrir modal de forma segura
         function abrirModalDetalhesSeguro(button) {
-            const clienteId = parseInt(button.dataset.clienteId);
+            const clienteId = button.dataset.clienteId; // Manter como string
             const nomeCliente = button.dataset.clienteNome;
             abrirModalDetalhes(clienteId, nomeCliente);
         }
 
         // ===== FUNÇÕES DE VENDAS E PARCELAS =====
         async function abrirModalDetalhes(clienteId, nomeCliente) {
-            clienteAtual = { id: clienteId, nome: nomeCliente };
+            clienteAtual = { id: clienteId, nome: nomeCliente }; // clienteId já é string
             
             const modal = document.getElementById('modalDetalhes');
             const titulo = document.getElementById('tituloDetalhes');
@@ -645,11 +645,19 @@
                     await waitForSupabase();
                 }
 
-                // Inserir venda
+                console.log('Dados da venda:', {
+                    cliente_id: clienteAtual.id,
+                    descricao: descricao,
+                    valor_total: valorTotal,
+                    num_parcelas: numParcelas,
+                    data_primeira: dataInicial
+                });
+
+                // Inserir venda - cliente_id já é string (UUID)
                 const { data: venda, error: vendaError } = await supabase
                     .from('vendas')
                     .insert([{
-                        cliente_id: clienteAtual.id,
+                        cliente_id: clienteAtual.id, // Usar diretamente como string
                         descricao: descricao,
                         valor_total: valorTotal,
                         num_parcelas: numParcelas,
@@ -659,8 +667,11 @@
                     .single();
 
                 if (vendaError) {
+                    console.error('Erro ao inserir venda:', vendaError);
                     throw vendaError;
                 }
+
+                console.log('Venda inserida com sucesso:', venda);
 
                 // Criar parcelas
                 const parcelas = [];
@@ -681,7 +692,7 @@
 
                     parcelas.push({
                         venda_id: venda.id,
-                        cliente_id: clienteAtual.id,
+                        cliente_id: clienteAtual.id, // Usar diretamente como string
                         parcela: i + 1,
                         valor: valorParcela,
                         vencimento: vencimento.toISOString().split('T')[0],
@@ -689,11 +700,14 @@
                     });
                 }
 
+                console.log('Parcelas a inserir:', parcelas);
+
                 const { error: parcelasError } = await supabase
                     .from('parcelas')
                     .insert(parcelas);
 
                 if (parcelasError) {
+                    console.error('Erro ao inserir parcelas:', parcelasError);
                     throw parcelasError;
                 }
 
@@ -721,7 +735,7 @@
                         *,
                         vendas!inner(descricao)
                     `)
-                    .eq('cliente_id', clienteId)
+                    .eq('cliente_id', clienteId) // clienteId já é string
                     .order('vencimento');
 
                 if (error) {
@@ -756,7 +770,7 @@
                                     ${statusText}
                                 </div>
                                 ${parcela.status === 'Pendente' ? 
-                                    `<button class="btn" style="margin-top: 10px; padding: 8px 16px; font-size: 14px;" onclick="marcarComoPaga(${parcela.id})">Marcar como Paga</button>` : 
+                                    `<button class="btn" style="margin-top: 10px; padding: 8px 16px; font-size: 14px;" onclick="marcarComoPaga('${parcela.id}')">Marcar como Paga</button>` : 
                                     ''}
                             </div>
                         </div>
@@ -778,7 +792,7 @@
                 const { error } = await supabase
                     .from('parcelas')
                     .update({ status: 'Paga' })
-                    .eq('id', parcelaId);
+                    .eq('id', parcelaId); // parcelaId já é string
 
                 if (error) {
                     throw error;
