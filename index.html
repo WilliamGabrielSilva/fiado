@@ -12,7 +12,7 @@
     
     <!-- Ícones para iOS -->
     <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
-    
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
@@ -389,6 +389,51 @@
                 
                 tryInit();
             });
+        }
+
+         if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('SW registrado com sucesso: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('Falha ao registrar SW: ', registrationError);
+                    });
+            });
+        }
+
+        // Função para instalar o PWA
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Previne o mini-infobar de aparecer no mobile
+            e.preventDefault();
+            // Guarda o evento para poder disparar depois
+            deferredPrompt = e;
+            // Mostra botão de instalação
+            showInstallButton();
+        });
+
+        function showInstallButton() {
+            const installButton = document.createElement('button');
+            installButton.textContent = 'Instalar App';
+            installButton.addEventListener('click', () => {
+                // Esconde o botão
+                installButton.style.display = 'none';
+                // Mostra o prompt
+                deferredPrompt.prompt();
+                // Aguarda a escolha do usuário
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('Usuário aceitou instalar');
+                    } else {
+                        console.log('Usuário recusou instalar');
+                    }
+                    deferredPrompt = null;
+                });
+            });
+            document.body.appendChild(installButton);
         }
 
         // ===== FUNÇÕES DE INTERFACE =====
