@@ -257,6 +257,174 @@
                 grid-template-columns: 1fr;
             }
         }
+        .relatorios-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .relatorio-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+
+        .relatorio-titulo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .resumo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .resumo-item {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .resumo-item.total {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .resumo-item.vencidas {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+        }
+
+        .resumo-valor {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .resumo-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .mes-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            transition: all 0.3s ease;
+        }
+
+        .mes-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .mes-info h4 {
+            margin: 0 0 5px 0;
+            color: #2c3e50;
+        }
+
+        .mes-detalhes {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .mes-valores {
+            text-align: right;
+        }
+
+        .valor-total {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 5px;
+        }
+
+        .valor-pendente {
+            font-size: 14px;
+            color: #dc3545;
+        }
+
+        .valor-pago {
+            font-size: 14px;
+            color: #28a745;
+        }
+
+        .filtros-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filtro-grupo {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filtro-grupo label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .filtro-grupo select,
+        .filtro-grupo input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .btn-filtro {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            align-self: flex-end;
+        }
+
+        .btn-filtro:hover {
+            background: #2980b9;
+        }
+
+        @media (max-width: 768px) {
+            .resumo-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .mes-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+            
+            .filtros-container {
+                flex-direction: column;
+            }
+            
+            .filtro-grupo {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -286,6 +454,69 @@
         <div id="loading" class="loading">Carregando...</div>
         <div id="clientesContainer" class="clientes-grid"></div>
     </div>
+
+    <div id="relatoriosScreen" class="relatorios-container">
+    <div class="header">
+        <h1>📊 Relatórios Financeiros</h1>
+        <div>
+            <button class="btn" onclick="voltarTelaPrincipal()">← Voltar</button>
+            <button class="btn btn-danger" onclick="realizarLogout()">Sair</button>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="relatorio-card">
+        <div class="filtros-container">
+            <div class="filtro-grupo">
+                <label>Ano:</label>
+                <select id="filtroAno">
+                    <!-- Será preenchido dinamicamente -->
+                </select>
+            </div>
+            <div class="filtro-grupo">
+                <label>Status:</label>
+                <select id="filtroStatus">
+                    <option value="todos">Todos</option>
+                    <option value="Pendente">Pendentes</option>
+                    <option value="Paga">Pagas</option>
+                </select>
+            </div>
+            <button class="btn-filtro" onclick="aplicarFiltros()">🔍 Filtrar</button>
+            <button class="btn-filtro" onclick="exportarRelatorio()" style="background: #28a745;">📄 Exportar</button>
+        </div>
+    </div>
+
+    <!-- Resumo Geral -->
+    <div class="relatorio-card">
+        <div class="relatorio-titulo">💰 Resumo Geral</div>
+        <div class="resumo-grid">
+            <div class="resumo-item total">
+                <div class="resumo-valor" id="totalGeral">R$ 0,00</div>
+                <div class="resumo-label">Total a Receber</div>
+            </div>
+            <div class="resumo-item">
+                <div class="resumo-valor" id="totalPendente">R$ 0,00</div>
+                <div class="resumo-label">Pendente</div>
+            </div>
+            <div class="resumo-item" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="resumo-valor" id="totalPago">R$ 0,00</div>
+                <div class="resumo-label">Já Recebido</div>
+            </div>
+            <div class="resumo-item vencidas">
+                <div class="resumo-valor" id="totalVencido">R$ 0,00</div>
+                <div class="resumo-label">Vencidas</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Relatório Mensal -->
+    <div class="relatorio-card">
+        <div class="relatorio-titulo">📅 Valores por Mês</div>
+        <div id="relatorioMensal">
+            <div class="loading">Carregando relatório...</div>
+        </div>
+    </div>
+    
 
     <!-- Modal Cadastro Cliente -->
     <div id="modalCadastro" class="modal">
@@ -1458,6 +1689,278 @@
                     alert('Erro ao carregar a aplicação. Verifique sua conexão com a internet.');
                 }
             });
+
+            // ===== FUNÇÕES DE RELATÓRIOS =====
+            let dadosRelatorio = [];
+
+            function mostrarRelatorios() {
+                document.getElementById('mainScreen').style.display = 'none';
+                document.getElementById('relatoriosScreen').style.display = 'block';
+                carregarRelatorios();
+            }
+
+        function voltarTelaPrincipal() {
+            document.getElementById('relatoriosScreen').style.display = 'none';
+            document.getElementById('mainScreen').style.display = 'block';
+        }
+
+        async function carregarRelatorios() {
+            console.log('📊 Carregando relatórios financeiros...');
+            
+            try {
+                if (!supabase) {
+                    await waitForSupabase();
+                }
+
+                // Buscar todas as parcelas com informações das vendas e clientes
+                const { data: parcelas, error } = await supabase
+                    .from('parcelas')
+                    .select(`
+                        *,
+                        vendas!inner(descricao, data_primeira),
+                        clientes!inner(nome)
+                    `)
+                    .order('vencimento');
+
+                if (error) {
+                    throw error;
+                }
+
+                dadosRelatorio = parcelas || [];
+                console.log('📋 Dados carregados:', dadosRelatorio.length, 'parcelas');
+
+                // Preencher filtro de anos
+                preencherFiltroAnos();
+                
+                // Aplicar filtros iniciais
+                aplicarFiltros();
+
+            } catch (error) {
+                console.error('❌ Erro ao carregar relatórios:', error);
+                document.getElementById('relatorioMensal').innerHTML = 
+                    `<p class="error">Erro ao carregar relatório: ${error.message}</p>`;
+            }
+        }
+
+        function preencherFiltroAnos() {
+            const filtroAno = document.getElementById('filtroAno');
+            const anos = new Set();
+            
+            dadosRelatorio.forEach(parcela => {
+                const ano = new Date(parcela.vencimento).getFullYear();
+                anos.add(ano);
+            });
+            
+            // Ordenar anos
+            const anosOrdenados = Array.from(anos).sort((a, b) => b - a);
+            
+            filtroAno.innerHTML = `
+                <option value="todos">Todos os Anos</option>
+                ${anosOrdenados.map(ano => `<option value="${ano}">${ano}</option>`).join('')}
+            `;
+            
+            // Selecionar ano atual por padrão
+            const anoAtual = new Date().getFullYear();
+            if (anosOrdenados.includes(anoAtual)) {
+                filtroAno.value = anoAtual.toString();
+            }
+        }
+
+        function aplicarFiltros() {
+            const filtroAno = document.getElementById('filtroAno').value;
+            const filtroStatus = document.getElementById('filtroStatus').value;
+            
+            console.log('🔍 Aplicando filtros:', { ano: filtroAno, status: filtroStatus });
+            
+            let dadosFiltrados = [...dadosRelatorio];
+            
+            // Filtrar por ano
+            if (filtroAno !== 'todos') {
+                dadosFiltrados = dadosFiltrados.filter(parcela => {
+                    const ano = new Date(parcela.vencimento).getFullYear();
+                    return ano.toString() === filtroAno;
+                });
+            }
+            
+            // Filtrar por status
+            if (filtroStatus !== 'todos') {
+                dadosFiltrados = dadosFiltrados.filter(parcela => parcela.status === filtroStatus);
+            }
+            
+            console.log('📊 Dados filtrados:', dadosFiltrados.length, 'parcelas');
+            
+            // Atualizar resumo e relatório
+            atualizarResumoGeral(dadosFiltrados);
+            gerarRelatorioMensal(dadosFiltrados);
+        }
+
+        function atualizarResumoGeral(parcelas) {
+            const hoje = new Date().toISOString().split('T')[0];
+            
+            let totalGeral = 0;
+            let totalPendente = 0;
+            let totalPago = 0;
+            let totalVencido = 0;
+            
+            parcelas.forEach(parcela => {
+                const valor = parseFloat(parcela.valor) || 0;
+                totalGeral += valor;
+                
+                if (parcela.status === 'Paga') {
+                    totalPago += valor;
+                } else {
+                    totalPendente += valor;
+                    
+                    if (parcela.vencimento < hoje) {
+                        totalVencido += valor;
+                    }
+                }
+            });
+    
+            // Atualizar interface
+            document.getElementById('totalGeral').textContent = formatarMoeda(totalGeral);
+            document.getElementById('totalPendente').textContent = formatarMoeda(totalPendente);
+            document.getElementById('totalPago').textContent = formatarMoeda(totalPago);
+            document.getElementById('totalVencido').textContent = formatarMoeda(totalVencido);
+    
+            console.log('💰 Resumo atualizado:', { totalGeral, totalPendente, totalPago, totalVencido });
+        }
+
+        function gerarRelatorioMensal(parcelas) {
+            const mesesData = {};
+            const hoje = new Date().toISOString().split('T')[0];
+            
+            // Agrupar por mês/ano
+            parcelas.forEach(parcela => {
+                const data = new Date(parcela.vencimento);
+                const mesAno = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+                
+                if (!mesesData[mesAno]) {
+                    mesesData[mesAno] = {
+                        mes: data.getMonth() + 1,
+                        ano: data.getFullYear(),
+                        total: 0,
+                        pendente: 0,
+                        pago: 0,
+                        vencido: 0,
+                        totalParcelas: 0
+                    };
+                }
+                
+                const valor = parseFloat(parcela.valor) || 0;
+                mesesData[mesAno].total += valor;
+                mesesData[mesAno].totalParcelas += 1;
+                
+                if (parcela.status === 'Paga') {
+                    mesesData[mesAno].pago += valor;
+                } else {
+                    mesesData[mesAno].pendente += valor;
+                    
+                    if (parcela.vencimento < hoje) {
+                        mesesData[mesAno].vencido += valor;
+                    }
+                }
+            });
+            
+            // Ordenar por ano/mês
+            const mesesOrdenados = Object.keys(mesesData)
+                .sort((a, b) => b.localeCompare(a)) // Mais recente primeiro
+                .map(key => ({ key, ...mesesData[key] }));
+            
+            // Renderizar
+            const container = document.getElementById('relatorioMensal');
+            
+            if (mesesOrdenados.length === 0) {
+                container.innerHTML = '<p>Nenhum dado encontrado para os filtros selecionados.</p>';
+                return;
+            }
+            
+            const html = mesesOrdenados.map(mes => {
+                const nomesMeses = [
+                    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+                ];
+                
+                const nomeMes = nomesMeses[mes.mes - 1];
+                const percentualPago = mes.total > 0 ? ((mes.pago / mes.total) * 100).toFixed(1) : 0;
+                
+                return `
+                    <div class="mes-item">
+                        <div class="mes-info">
+                            <h4>${nomeMes} ${mes.ano}</h4>
+                            <div class="mes-detalhes">
+                                ${mes.totalParcelas} parcela${mes.totalParcelas !== 1 ? 's' : ''} • 
+                                ${percentualPago}% recebido
+                                ${mes.vencido > 0 ? ` • <span style="color: #dc3545;">R$ ${formatarMoeda(mes.vencido)} vencido</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="mes-valores">
+                            <div class="valor-total">${formatarMoeda(mes.total)}</div>
+                            ${mes.pendente > 0 ? `<div class="valor-pendente">Pendente: ${formatarMoeda(mes.pendente)}</div>` : ''}
+                            ${mes.pago > 0 ? `<div class="valor-pago">Recebido: ${formatarMoeda(mes.pago)}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = html;
+            console.log('📅 Relatório mensal gerado:', mesesOrdenados.length, 'meses');
+        }
+
+        function formatarMoeda(valor) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(valor).replace('R$', '').trim();
+        }
+
+        function exportarRelatorio() {
+            const filtroAno = document.getElementById('filtroAno').value;
+            const filtroStatus = document.getElementById('filtroStatus').value;
+            
+            let dadosFiltrados = [...dadosRelatorio];
+            
+            // Aplicar mesmos filtros
+            if (filtroAno !== 'todos') {
+                dadosFiltrados = dadosFiltrados.filter(parcela => {
+                    const ano = new Date(parcela.vencimento).getFullYear();
+                    return ano.toString() === filtroAno;
+                });
+            }
+            
+            if (filtroStatus !== 'todos') {
+                dadosFiltrados = dadosFiltrados.filter(parcela => parcela.status === filtroStatus);
+            }
+            
+            // Criar CSV
+            const headers = ['Cliente', 'Descrição', 'Parcela', 'Valor', 'Vencimento', 'Status'];
+            const csvContent = [
+                headers.join(','),
+                ...dadosFiltrados.map(parcela => [
+                    `"${parcela.clientes.nome}"`,
+                    `"${parcela.vendas.descricao}"`,
+                    parcela.parcela,
+                    parcela.valor,
+                    parcela.vencimento,
+                    parcela.status
+                ].join(','))
+            ].join('\n');
+            
+            // Download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `relatorio_financeiro_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            console.log('📄 Relatório exportado com sucesso');
+        }
     </script>
 </body>
 </html>
