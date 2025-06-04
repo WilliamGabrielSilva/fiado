@@ -589,7 +589,7 @@
         }
 
         // ===== FUNÇÕES DE VENDAS E PARCELAS =====
-        async function abrirModalDetalhes(clienteId, nomeCliente) {
+       async function abrirModalDetalhes(clienteId, nomeCliente) {
             clienteAtual = { id: clienteId, nome: nomeCliente };
             
             const modal = document.getElementById('modalDetalhes');
@@ -604,6 +604,10 @@
                 const hoje = new Date().toISOString().split('T')[0];
                 dataField.value = hoje;
             }
+            
+            // DEBUG
+            console.log('Cliente selecionado:', clienteId, nomeCliente);
+            await debugCliente(clienteId);
             
             await carregarParcelas(clienteId);
         }
