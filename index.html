@@ -712,13 +712,23 @@
         // ===== NOVAS FUNÇÕES DE EDIÇÃO DE VENDAS =====
         async function editarVenda(vendaId) {
             try {
+                console.log('🔍 Iniciando edição da venda:', vendaId);
+                
+                // Validar se vendaId foi fornecido
+                if (!vendaId) {
+                    throw new Error('ID da venda não fornecido');
+                }
+
+                // Aguardar inicialização do Supabase
                 if (!supabase) {
+                    console.log('⏳ Aguardando inicialização do Supabase...');
                     await waitForSupabase();
                 }
 
                 console.log('✏️ Editando venda:', vendaId);
 
                 // Buscar dados da venda
+                console.log('📡 Buscando dados da venda no banco...');
                 const { data: venda, error } = await supabase
                     .from('vendas')
                     .select('*')
@@ -726,41 +736,150 @@
                     .single();
 
                 if (error) {
+                    console.error('❌ Erro na consulta Supabase:', error);
                     throw error;
+                }
+
+                if (!venda) {
+                    throw new Error('Venda não encontrada');
                 }
 
                 console.log('📝 Dados da venda para edição:', venda);
 
-                // Preencher formulário
-                const descricaoField = document.getElementById('descricaoVenda');
-                const valorField = document.getElementById('valorTotal');
-                const parcelasField = document.getElementById('numParcelas');
-                const dataField = document.getElementById('dataInicial');
-                const botaoSalvar = document.getElementById('botaoSalvarVenda');
+                // Buscar elementos do formulário com verificação individual
+                const elementos = {
+                    descricaoField: document.getElementById('descricaoVenda'),
+                    valorField: document.getElementById('valorTotal'),
+                    parcelasField: document.getElementById('numParcelas'),
+                    dataField: document.getElementById('dataInicial'),
+                    botaoSalvar: document.getElementById('botaoSalvarVenda'),
+                    formulario: document.getElementById('formularioVenda')
+                };
 
-                if (descricaoField) descricaoField.value = venda.descricao;
-                if (valorField) valorField.value = venda.valor_total;
-                if (parcelasField) parcelasField.value = venda.num_parcelas;
-                if (dataField) dataField.value = venda.data_primeira;
+                // Verificar se os elementos foram encontrados
+                console.log('🔍 Verificando elementos do DOM:');
+                Object.entries(elementos).forEach(([nome, elemento]) => {
+                    console.log(`  ${nome}:`, elemento ? 'Encontrado' : 'NÃO ENCONTRADO');
+                });
 
-                // Configurar para modo edição
-                vendaEditando = venda;
+                // Preencher campos se encontrados
+                if (elementos.descricaoField) {
+                    elementos.descricaoField.value = venda.descricao || '';
+                    console.log('✓ Descrição preenchida:', venda.descricao);
+                } else {
+                    console.warn('⚠️ Campo descricaoVenda não encontrado');
+                }
+
+                if (elementos.valorField) {
+                    elementos.valorField.value = venda.valor_total || '';
+                    console.log('✓ Valor preenchido:', venda.valor_total);
+                } else {
+                    console.warn('⚠️ Campo valorTotal não encontrado');
+                }
+
+                if (elementos.parcelasField) {
+                    elementos.parcelasField.value = venda.num_parcelas || '';
+                    console.log('✓ Parcelas preenchidas:', venda.num_parcelas);
+                } else {
+                    console.warn('⚠️ Campo numParcelas não encontrado');
+                }
+
+                if (elementos.dataField) {
+                    // Formatar data se necessário (assumindo formato YYYY-MM-DD)
+                    const dataFormatada = venda.data_primeira ? 
+                        new Date(venda.data_primeira).toISOString().split('T')[0] : '';
+                    elementos.dataField.value = dataFormatada;
+                    console.log('✓ Data preenchida:', dataFormatada);
+                } else {
+                    console.warn('⚠️ Campo dataInicial não encontrado');
+                }
+
+                // Configurar modo edição
+                console.log('🔧 Configurando modo edição...');
                 
-                if (botaoSalvar) {
-                    botaoSalvar.textContent = 'Atualizar Venda';
-                    botaoSalvar.onclick = atualizarVenda;
+                // Definir variável global para controle de edição
+                window.vendaEditando = venda;
+                console.log('✓ Variável vendaEditando definida:', window.vendaEditando);
+
+                // Configurar botão salvar
+                if (elementos.botaoSalvar) {
+                    elementos.botaoSalvar.textContent = 'Atualizar Venda';
+                    
+                    // Remover listeners anteriores e adicionar novo
+                    elementos.botaoSalvar.onclick = null;
+                    elementos.botaoSalvar.removeEventListener('click', salvarVenda);
+                    
+                    // Verificar se função atualizarVenda existe
+                    if (typeof atualizarVenda === 'function') {
+                        elementos.botaoSalvar.onclick = atualizarVenda;
+                        console.log('✓ Botão configurado para atualizarVenda');
+                    } else {
+                        console.error('❌ Função atualizarVenda não encontrada');
+                        // Fallback: criar função temporária
+                        elementos.botaoSalvar.onclick = () => {
+                            console.error('Função atualizarVenda não implementada');
+                            alert('Função de atualização não implementada');
+                        };
+                    }
+                } else {
+                    console.warn('⚠️ Botão salvar não encontrado');
                 }
 
-                // Scroll para o formulário (se necessário)
-                const formulario = document.getElementById('formularioVenda');
-                if (formulario) {
-                    formulario.scrollIntoView({ behavior: 'smooth' });
+                // Scroll para o formulário
+                if (elementos.formulario) {
+                    elementos.formulario.scrollIntoView({ 
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    console.log('✓ Scroll realizado para o formulário');
+                } else {
+                    console.warn('⚠️ Formulário não encontrado para scroll');
                 }
+
+                console.log('✅ Edição configurada com sucesso');
 
             } catch (error) {
                 console.error('❌ Erro ao editar venda:', error);
-                alert('Erro ao carregar dados da venda: ' + error.message);
+                console.error('Stack trace:', error.stack);
+                
+                // Mensagem de erro mais informativa
+                let mensagemErro = 'Erro ao carregar dados da venda';
+                
+                if (error.message.includes('não encontrada')) {
+                    mensagemErro = 'Venda não encontrada';
+                } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                    mensagemErro = 'Erro de conexão. Verifique sua internet';
+                } else if (error.message) {
+                    mensagemErro += ': ' + error.message;
+                }
+                
+                alert(mensagemErro);
             }
+        }
+
+        // Função auxiliar para debug
+        function debugEditarVenda(vendaId) {
+            console.log('🐛 DEBUG - Verificando pré-requisitos para edição');
+            console.log('  vendaId:', vendaId);
+            console.log('  supabase:', typeof supabase, supabase);
+            console.log('  waitForSupabase:', typeof waitForSupabase);
+            console.log('  atualizarVenda:', typeof atualizarVenda);
+            
+            // Verificar elementos DOM
+            const elementos = [
+                'descricaoVenda',
+                'valorTotal', 
+                'numParcelas',
+                'dataInicial',
+                'botaoSalvarVenda',
+                'formularioVenda'
+            ];
+            
+            console.log('  Elementos DOM:');
+            elementos.forEach(id => {
+                const elemento = document.getElementById(id);
+                console.log(`    ${id}:`, elemento ? 'Encontrado' : 'NÃO ENCONTRADO');
+            });
         }
 
         async function atualizarVenda() {
