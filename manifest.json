@@ -1,11 +1,11 @@
 {
-  "name": "Meu App PWA",
-  "short_name": "MeuApp",
+  "name": "Controle de Fiado",
+  "short_name": "Fiados",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1976d2",
-  "description": "Um exemplo de Progressive Web App.",
+  "description": "App de controle de fiado",
   "icons": [
     {
       "src": "icons/icon-192x192.png",
