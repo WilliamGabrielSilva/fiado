@@ -583,7 +583,7 @@
 
         // Função auxiliar para abrir modal de forma segura
         function abrirModalDetalhesSeguro(button) {
-            const clienteId = parseInt(button.dataset.clienteId);
+            const clienteId = button.dataset.clienteId;
             const nomeCliente = button.dataset.clienteNome;
             abrirModalDetalhes(clienteId, nomeCliente);
         }
