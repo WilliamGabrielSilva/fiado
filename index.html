@@ -677,6 +677,12 @@
         function mostrarTelaPrincipal() {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('mainScreen').style.display = 'block';
+            
+            // Configurar event listeners
+            setTimeout(() => {
+                configurarEventListeners();
+                console.log('✅ Event listeners configurados na tela principal');
+            }, 100);
         }
 
         function mostrarErro(elementId, mensagem) {
@@ -801,15 +807,22 @@
                             ${cliente.telefone ? `📞 ${escapeHtml(cliente.telefone)}` : 'Sem telefone'}
                         </div>
                         <div class="cliente-acoes">
-                            <button class="btn" data-cliente-id="${cliente.id}" data-cliente-nome="${escapeHtml(cliente.nome)}" onclick="abrirModalDetalhesSeguro(this)">
+                            <button class="btn btn-detalhes" 
+                                    data-cliente-id="${cliente.id}" 
+                                    data-cliente-nome="${escapeHtml(cliente.nome)}">
                                 Ver Detalhes
                             </button>
-                            <button class="btn btn-danger" onclick="confirmarExclusaoCliente('${cliente.id}', '${escapeHtml(cliente.nome)}')">
+                            <button class="btn btn-danger btn-excluir" 
+                                    data-cliente-id="${cliente.id}" 
+                                    data-cliente-nome="${escapeHtml(cliente.nome)}">
                                 Excluir
                             </button>
                         </div>
                     </div>
                 `).join('');
+
+                // CORREÇÃO: Usar event delegation em vez de onclick inline
+                configurarEventListenersClientes();
 
             } catch (error) {
                 console.error('Erro ao carregar clientes:', error);
@@ -992,11 +1005,43 @@
                 document.getElementById('mainScreen').style.display = 'none';
                 document.getElementById('relatoriosScreen').style.display = 'block';
                 carregarRelatorios();
+                
+                // Configurar listeners dos relatórios
+                setTimeout(() => {
+                    const btnVoltar = document.getElementById('btnVoltarPrincipal');
+                    const btnExportar = document.getElementById('btnExportar');
+                    const filtroAno = document.getElementById('filtroAno');
+                    const filtroStatus = document.getElementById('filtroStatus');
+                    
+                    if (btnVoltar) {
+                        btnVoltar.onclick = voltarTelaPrincipal;
+                    }
+                    
+                    if (btnExportar) {
+                        btnExportar.onclick = exportarRelatorio;
+                    }
+                    
+                    if (filtroAno) {
+                        filtroAno.onchange = aplicarFiltros;
+                    }
+                    
+                    if (filtroStatus) {
+                        filtroStatus.onchange = aplicarFiltros;
+                    }
+                    
+                    console.log('✅ Event listeners dos relatórios configurados');
+                }, 100);
             }
 
             function voltarTelaPrincipal() {
                 document.getElementById('relatoriosScreen').style.display = 'none';
                 document.getElementById('mainScreen').style.display = 'block';
+                
+                // CORREÇÃO: Reconfigurar event listeners após voltar à tela principal
+                setTimeout(() => {
+                    configurarEventListeners();
+                    console.log('✅ Event listeners reconfigurados após retorno à tela principal');
+                }, 100);
             }
 
             async function carregarRelatorios() {
@@ -1953,6 +1998,9 @@
                     await waitForSupabase();
                     console.log('✅ Supabase carregado com sucesso');
                     
+                    // Configurar event listeners iniciais
+                    configurarEventListeners();
+                    
                     const user = await verificarUsuario();
                     if (user) {
                         await carregarClientes();
@@ -1962,6 +2010,98 @@
                     alert('Erro ao carregar a aplicação. Verifique sua conexão com a internet.');
                 }
             });
+
+            function configurarEventListeners() {
+                console.log('🔧 Configurando event listeners...');
+                
+                // Event listeners para botões fixos (que não são recriados dinamicamente)
+                const btnCadastrar = document.getElementById('btnCadastrarCliente');
+                const btnRelatorios = document.getElementById('btnRelatorios');
+                const btnLogout = document.getElementById('btnLogout');
+                
+                if (btnCadastrar) {
+                    btnCadastrar.onclick = abrirModalCadastro;
+                    console.log('✓ Event listener do botão cadastrar configurado');
+                }
+                
+                if (btnRelatorios) {
+                    btnRelatorios.onclick = mostrarRelatorios;
+                    console.log('✓ Event listener do botão relatórios configurado');
+                }
+                
+                if (btnLogout) {
+                    btnLogout.onclick = realizarLogout;
+                    console.log('✓ Event listener do botão logout configurado');
+                }
+                
+                // Outros event listeners fixos
+                const loginBtn = document.getElementById('loginBtn');
+                if (loginBtn) {
+                    loginBtn.onclick = realizarLogin;
+                }
+                
+                const btnFecharCadastro = document.getElementById('btnFecharCadastro');
+                const btnSalvarCliente = document.getElementById('btnSalvarCliente');
+                
+                if (btnFecharCadastro) {
+                    btnFecharCadastro.onclick = fecharModalCadastro;
+                }
+                
+                if (btnSalvarCliente) {
+                    btnSalvarCliente.onclick = salvarCliente;
+                }
+                
+                // Event listeners do modal de detalhes
+                const btnFecharDetalhes = document.getElementById('btnFecharDetalhes');
+                const btnSalvarVenda = document.getElementById('botaoSalvarVenda');
+                
+                if (btnFecharDetalhes) {
+                    btnFecharDetalhes.onclick = fecharModalDetalhes;
+                }
+                
+                if (btnSalvarVenda) {
+                    btnSalvarVenda.onclick = registrarVenda;
+                }
+            }
+
+            function configurarEventListenersClientes() {
+                const container = document.getElementById('clientesContainer');
+                
+                if (!container) {
+                    console.warn('⚠️ Container de clientes não encontrado');
+                    return;
+                }
+                
+                // Remover listeners anteriores
+                container.removeEventListener('click', handleClienteClick);
+                
+                // Adicionar novo listener usando event delegation
+                container.addEventListener('click', handleClienteClick);
+                
+                console.log('✅ Event listeners dos clientes configurados');
+            }
+
+            function handleClienteClick(event) {
+                const target = event.target;
+    
+                if (target.classList.contains('btn-detalhes')) {
+                    const clienteId = target.dataset.clienteId;
+                    const clienteNome = target.dataset.clienteNome;
+                    
+                    console.log('🔍 Abrindo detalhes do cliente:', { id: clienteId, nome: clienteNome });
+                    abrirModalDetalhes(clienteId, clienteNome);
+                    
+                } else if (target.classList.contains('btn-excluir')) {
+                    const clienteId = target.dataset.clienteId;
+                    const clienteNome = target.dataset.clienteNome;
+                    
+                    console.log('🗑️ Excluindo cliente:', { id: clienteId, nome: clienteNome });
+                    confirmarExclusaoCliente(clienteId, clienteNome);
+                }
+            }
+
+            
+
     </script>
 </body>
 </html>
