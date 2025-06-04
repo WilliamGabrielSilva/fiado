@@ -1,7 +1,8 @@
 const CACHE_NAME = 'meu-pwa-v1';
 const urlsToCache = [
   '/',
-  '/index.html'
+  '/index.html',
+  '/manifest.json'
 ];
 
 // Instalar Service Worker
