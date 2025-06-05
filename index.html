@@ -447,7 +447,7 @@
         <div class="header">
             <h1>Controle de Fiado</h1>
             <div>
-                <button class="btn" onclick="abrirModalCadastro()">Novo Cliente</button>
+                <button class="btn" id="botaoCadastro">Novo Cliente</button>
                 <button class="btn btn-danger" onclick="realizarLogout()">Sair</button>
                 <button class="btn" onclick="mostrarRelatorios()" style="background: #28a745;">📊 Relatórios</button>
             </div>
@@ -593,6 +593,11 @@
         let supabase;
         let clienteAtual = null;
         let vendaEditando = null; // Nova variável para controlar edição de vendas
+        const botaoCadastro = document.getElementById("botaoCadastro")
+
+        botaoCadastro.addEventListener('click', () => {
+            abrirModalCadastro()
+        })
 
         // Aguardar carregamento da biblioteca
         function initSupabase() {
