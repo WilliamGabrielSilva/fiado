@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatórios Financeiros</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+  }
+
+  .header {
+    background: white;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .header h1 {
+    margin: 0;
+    color: #2c3e50;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    margin-left: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    background: #3498db;
+    color: white;
+  }
+
+  .btn:hover {
+    background: #2980b9;
+  }
+
+  .btn-danger {
+    background: #e74c3c;
+  }
+
+  .btn-danger:hover {
+    background: #c0392b;
+  }
+
+  .relatorios-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .relatorio-card {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 25px;
+  }
+
+  .relatorio-titulo {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 10px;
+  }
+
+  .resumo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  .resumo-item {
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  }
+
+  .resumo-item.total {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  }
+
+  .resumo-item.vencidas {
+    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+  }
+
+  .resumo-valor {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+
+  .resumo-label {
+    font-size: 14px;
+    opacity: 0.9;
+  }
+
+  .mes-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #3498db;
+    transition: all 0.3s ease;
+  }
+
+  .mes-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .mes-info h4 {
+    margin: 0 0 5px 0;
+    color: #2c3e50;
+  }
+
+  .mes-detalhes {
+    font-size: 14px;
+    color: #666;
+  }
+
+  .mes-valores {
+    text-align: right;
+  }
+
+  .valor-total {
+    font-size: 20px;
+    font-weight: bold;
+    color: #2563eb;
+    margin-bottom: 5px;
+  }
+
+  .valor-pendente {
+    font-size: 14px;
+    color: #dc3545;
+  }
+
+  .valor-pago {
+    font-size: 14px;
+    color: #28a745;
+  }
+
+  .filtros-container {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filtro-grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .filtro-grupo label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #555;
+  }
+
+  .filtro-grupo select,
+  .filtro-grupo input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+  }
+
+  .btn-filtro {
+    padding: 10px 20px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    align-self: flex-end;
+  }
+
+  .btn-filtro:hover {
+    background: #2980b9;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+  }
+
+  .error {
+    color: #e74c3c;
+    text-align: center;
+    padding: 20px;
+  }
+
+  @media (max-width: 768px) {
+    .resumo-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .mes-item {
+      flex-direction: column;
+      text-align: center;
+      gap: 10px;
+    }
+    
+    .filtros-container {
+      flex-direction: column;
+    }
+    
+    .filtro-grupo {
+      width: 100%;
+    }
+  }
+</style>
+<body>
+  <div class="relatorios-container">
+    <div class="header">
+      <h1>📊 Relatórios Financeiros</h1>
+      <div>
+        <button class="btn" onclick="voltarTelaPrincipal()">← Voltar</button>
+        <button class="btn btn-danger" onclick="realizarLogout()">Sair</button>
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="relatorio-card">
+      <div class="filtros-container">
+        <div class="filtro-grupo">
+          <label>Ano:</label>
+          <select id="filtroAno">
+            <option value="todos">Carregando...</option>
+          </select>
+        </div>
+        <div class="filtro-grupo">
+          <label>Status:</label>
+          <select id="filtroStatus">
+            <option value="todos">Todos</option>
+            <option value="Pendente">Pendentes</option>
+            <option value="Paga">Pagas</option>
+          </select>
+        </div>
+        <button class="btn-filtro" onclick="aplicarFiltros()">🔍 Filtrar</button>
+        <button class="btn-filtro" onclick="exportarRelatorio()" style="background: #28a745;">📄 Exportar</button>
+      </div>
+    </div>
+
+    <!-- Resumo Geral -->
+    <div class="relatorio-card">
+      <div class="relatorio-titulo">💰 Resumo Geral</div>
+      <div class="resumo-grid">
+        <div class="resumo-item total">
+          <div class="resumo-valor" id="totalGeral">R$ 0,00</div>
+          <div class="resumo-label">Total a Receber</div>
+        </div>
+        <div class="resumo-item">
+          <div class="resumo-valor" id="totalPendente">R$ 0,00</div>
+          <div class="resumo-label">Pendente</div>
+        </div>
+        <div class="resumo-item" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+          <div class="resumo-valor" id="totalPago">R$ 0,00</div>
+          <div class="resumo-label">Já Recebido</div>
+        </div>
+        <div class="resumo-item vencidas">
+          <div class="resumo-valor" id="totalVencido">R$ 0,00</div>
+          <div class="resumo-label">Vencidas</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Relatório Mensal -->
+    <div class="relatorio-card">
+      <div class="relatorio-titulo">📅 Valores por Mês</div>
+      <div id="relatorioMensal">
+        <div class="loading">Carregando relatório...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Configuração do Supabase
+    const supabaseUrl = 'https://pgqrjtglzibalkjlkrxt.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBncXJqdGdsemliYWxramxrcnh0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzY5NDY2MSwiZXhwIjoyMDYzMjcwNjYxfQ.tlYQRgXgxpQ8YrpaP-1_9vOB547K_ZH23HkEr2g92oI';
+
+    // Variáveis globais
+    let supabase;
+    let dadosRelatorio = [];
+
+    // Função para aguardar o Supabase carregar
+    async function waitForSupabase() {
+      let attempts = 0;
+      while (!window.supabase && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      
+      if (!window.supabase) {
+        throw new Error('Supabase não carregou');
+      }
+      
+      supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+      console.log('✅ Supabase inicializado com sucesso');
+    }
+
+    // Carregar dados ao iniciar
+    document.addEventListener('DOMContentLoaded', async function() {
+      try {
+        await waitForSupabase();
+        await carregarRelatorios();
+      } catch (error) {
+        console.error('❌ Erro na inicialização:', error);
+        document.getElementById('relatorioMensal').innerHTML = 
+          `<p class="error">Erro na inicialização: ${error.message}</p>`;
+      }
+    });
+
+    async function carregarRelatorios() {
+      console.log('📊 Carregando relatórios financeiros...');
+      
+      try {
+        // Mostrar loading
+        document.getElementById('relatorioMensal').innerHTML = '<div class="loading">Carregando dados...</div>';
+        
+        // Verificar se supabase está inicializado
+        if (!supabase) {
+          await waitForSupabase();
+        }
+
+        console.log('🔗 Conectando ao Supabase...');
+        
+        // Buscar todas as parcelas com informações das vendas e clientes
+        const { data: parcelas, error } = await supabase
+          .from('parcelas')
+          .select(`
+            *,
+            vendas!inner(descricao, data_primeira),
+            clientes!inner(nome)
+          `)
+          .order('vencimento');
+
+        if (error) {
+          console.error('Erro do Supabase:', error);
+          throw new Error(`Erro ao buscar dados: ${error.message}`);
+        }
+
+        dadosRelatorio = parcelas || [];
+        console.log('📋 Dados carregados:', dadosRelatorio.length, 'parcelas');
+
+        // Verificar se há dados
+        if (dadosRelatorio.length === 0) {
+          document.getElementById('relatorioMensal').innerHTML = '<p class="error">Nenhuma parcela encontrada no banco de dados.</p>';
+          return;
+        }
+
+        // Preencher filtro de anos
+        preencherFiltroAnos();
+        
+        // Aplicar filtros iniciais
+        aplicarFiltros();
+
+      } catch (error) {
+        console.error('❌ Erro ao carregar relatórios:', error);
+        document.getElementById('relatorioMensal').innerHTML = 
+          `<p class="error">Erro ao carregar relatório: ${error.message}</p>`;
+      }
+    }
+
+    function preencherFiltroAnos() {
+      const filtroAno = document.getElementById('filtroAno');
+      const anos = new Set();
+      
+      dadosRelatorio.forEach(parcela => {
+        const ano = new Date(parcela.vencimento).getFullYear();
+        anos.add(ano);
+      });
+      
+      // Ordenar anos
+      const anosOrdenados = Array.from(anos).sort((a, b) => b - a);
+      
+      filtroAno.innerHTML = `
+        <option value="todos">Todos os Anos</option>
+        ${anosOrdenados.map(ano => `<option value="${ano}">${ano}</option>`).join('')}
+      `;
+      
+      // Selecionar ano atual por padrão
+      const anoAtual = new Date().getFullYear();
+      if (anosOrdenados.includes(anoAtual)) {
+        filtroAno.value = anoAtual.toString();
+      }
+    }
+
+    function aplicarFiltros() {
+      const filtroAno = document.getElementById('filtroAno').value;
+      const filtroStatus = document.getElementById('filtroStatus').value;
+      
+      console.log('🔍 Aplicando filtros:', { ano: filtroAno, status: filtroStatus });
+      
+      let dadosFiltrados = [...dadosRelatorio];
+      
+      // Filtrar por ano
+      if (filtroAno !== 'todos') {
+        dadosFiltrados = dadosFiltrados.filter(parcela => {
+          const ano = new Date(parcela.vencimento).getFullYear();
+          return ano.toString() === filtroAno;
+        });
+      }
+      
+      // Filtrar por status
+      if (filtroStatus !== 'todos') {
+        dadosFiltrados = dadosFiltrados.filter(parcela => parcela.status === filtroStatus);
+      }
+      
+      console.log('📊 Dados filtrados:', dadosFiltrados.length, 'parcelas');
+      
+      // Atualizar resumo e relatório
+      atualizarResumoGeral(dadosFiltrados);
+      gerarRelatorioMensal(dadosFiltrados);
+    }
+
+    function atualizarResumoGeral(parcelas) {
+      console.log('💰 Atualizando resumo geral com', parcelas.length, 'parcelas');
+      
+      const hoje = new Date().toISOString().split('T')[0];
+      
+      let totalGeral = 0;
+      let totalPendente = 0;
+      let totalPago = 0;
+      let totalVencido = 0;
+      
+      parcelas.forEach(parcela => {
+        const valor = parseFloat(parcela.valor) || 0;
+        totalGeral += valor;
+        
+        if (parcela.status === 'Paga') {
+          totalPago += valor;
+        } else {
+          totalPendente += valor;
+          
+          if (parcela.vencimento < hoje) {
+            totalVencido += valor;
+          }
+        }
+      });
+
+      console.log('Valores calculados:', { totalGeral, totalPendente, totalPago, totalVencido });
+
+      // Atualizar interface
+      const elementoTotalGeral = document.getElementById('totalGeral');
+      const elementoTotalPendente = document.getElementById('totalPendente');
+      const elementoTotalPago = document.getElementById('totalPago');
+      const elementoTotalVencido = document.getElementById('totalVencido');
+      
+      if (elementoTotalGeral) elementoTotalGeral.textContent = formatarMoeda(totalGeral);
+      if (elementoTotalPendente) elementoTotalPendente.textContent = formatarMoeda(totalPendente);
+      if (elementoTotalPago) elementoTotalPago.textContent = formatarMoeda(totalPago);
+      if (elementoTotalVencido) elementoTotalVencido.textContent = formatarMoeda(totalVencido);
+
+      console.log('💰 Resumo atualizado na interface');
+    }
+
+    function gerarRelatorioMensal(parcelas) {
+      const mesesData = {};
+      const hoje = new Date().toISOString().split('T')[0];
+      
+      // Agrupar por mês/ano
+      parcelas.forEach(parcela => {
+        const data = new Date(parcela.vencimento);
+        const mesAno = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+        
+        if (!mesesData[mesAno]) {
+          mesesData[mesAno] = {
+            mes: data.getMonth() + 1,
+            ano: data.getFullYear(),
+            total: 0,
+            pendente: 0,
+            pago: 0,
+            vencido: 0,
+            totalParcelas: 0
+          };
+        }
+        
+        const valor = parseFloat(parcela.valor) || 0;
+        mesesData[mesAno].total += valor;
+        mesesData[mesAno].totalParcelas += 1;
+        
+        if (parcela.status === 'Paga') {
+          mesesData[mesAno].pago += valor;
+        } else {
+          mesesData[mesAno].pendente += valor;
+          
+          if (parcela.vencimento < hoje) {
+            mesesData[mesAno].vencido += valor;
+          }
+        }
+      });
+      
+      // Ordenar por ano/mês
+      const mesesOrdenados = Object.keys(mesesData)
+        .sort((a, b) => b.localeCompare(a)) // Mais recente primeiro
+        .map(key => ({ key, ...mesesData[key] }));
+      
+      // Renderizar
+      const container = document.getElementById('relatorioMensal');
+      
+      if (mesesOrdenados.length === 0) {
+        container.innerHTML = '<p>Nenhum dado encontrado para os filtros selecionados.</p>';
+        return;
+      }
+      
+      const html = mesesOrdenados.map(mes => {
+        const nomesMeses = [
+          'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+          'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+        ];
+        
+        const nomeMes = nomesMeses[mes.mes - 1];
+        const percentualPago = mes.total > 0 ? ((mes.pago / mes.total) * 100).toFixed(1) : 0;
+        
+        return `
+          <div class="mes-item">
+            <div class="mes-info">
+              <h4>${nomeMes} ${mes.ano}</h4>
+              <div class="mes-detalhes">
+                ${mes.totalParcelas} parcela${mes.totalParcelas !== 1 ? 's' : ''} • 
+                ${percentualPago}% recebido
+                ${mes.vencido > 0 ? ` • <span style="color: #dc3545;">R$ ${formatarMoeda(mes.vencido)} vencido</span>` : ''}
+              </div>
+            </div>
+            <div class="mes-valores">
+              <div class="valor-total">${formatarMoeda(mes.total)}</div>
+              ${mes.pendente > 0 ? `<div class="valor-pendente">Pendente: ${formatarMoeda(mes.pendente)}</div>` : ''}
+              ${mes.pago > 0 ? `<div class="valor-pago">Recebido: ${formatarMoeda(mes.pago)}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      container.innerHTML = html;
+      console.log('📅 Relatório mensal gerado:', mesesOrdenados.length, 'meses');
+    }
+
+    function formatarMoeda(valor) {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      }).format(valor);
+    }
+
+    function exportarRelatorio() {
+      const filtroAno = document.getElementById('filtroAno').value;
+      const filtroStatus = document.getElementById('filtroStatus').value;
+      
+      let dadosFiltrados = [...dadosRelatorio];
+      
+      // Aplicar mesmos filtros
+      if (filtroAno !== 'todos') {
+        dadosFiltrados = dadosFiltrados.filter(parcela => {
+          const ano = new Date(parcela.vencimento).getFullYear();
+          return ano.toString() === filtroAno;
+        });
+      }
+      
+      if (filtroStatus !== 'todos') {
+        dadosFiltrados = dadosFiltrados.filter(parcela => parcela.status === filtroStatus);
+      }
+      
+      // Criar CSV
+      const headers = ['Cliente', 'Descrição', 'Parcela', 'Valor', 'Vencimento', 'Status'];
+      const csvContent = [
+        headers.join(','),
+        ...dadosFiltrados.map(parcela => [
+          `"${parcela.clientes.nome}"`,
+          `"${parcela.vendas.descricao}"`,
+          parcela.parcela,
+          parcela.valor,
+          parcela.vencimento,
+          parcela.status
+        ].join(','))
+      ].join('\n');
+      
+      // Download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `relatorio_financeiro_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('📄 Relatório exportado com sucesso');
+    }
+
+    // Funções que podem ser chamadas externamente
+    function voltarTelaPrincipal() {
+      console.log('Voltando para tela principal...');
+      // Implementar lógica de navegação
+    }
+
+    function realizarLogout() {
+      console.log('Realizando logout...');
+      // Implementar lógica de logout
+    }
+  </script>
+</body>
+</html>
